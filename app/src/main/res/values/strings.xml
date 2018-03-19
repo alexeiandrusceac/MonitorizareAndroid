@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Monitorizare</string>
+    <string name="id">Nr.crt</string>
+    <string name="date">Data </string>
+    <string name ="input">Primit</string>
+    <string name ="output">Cheltuit</string>
+    <string name ="difference">Diferenta</string>
+</resources>
