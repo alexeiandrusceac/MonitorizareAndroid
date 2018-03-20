@@ -1,3 +1,5 @@
+package com.example.alexei.monitorizare;
+
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDatabaseLockedException;
@@ -42,7 +44,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
         db.execSQL(InputOutputTable);
 
     }
-    public void insertData(String dateTime,int primire,int cheltuire,String diferenta,int totalPrimire,int totalCheltuire)
+    public void insertData(String dateTime,int primire,int cheltuire, int diferenta,int totalPrimire,int totalCheltuire)
     {
         SQLiteDatabase database = this.getWritableDatabase();
         String inputRow  = "INSERT INTO "

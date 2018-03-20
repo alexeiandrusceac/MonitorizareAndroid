@@ -6,14 +6,13 @@
 
     <TextView
 
-        android:layout_width="262dp"
+        android:layout_width="match_parent"
         android:layout_height="64dp"
         android:text="@string/app_name"
         android:textAlignment="center"
         android:fontFamily="sans-serif"
-        android:textSize="32dp"
-        android:background="#FFFFBB33"
-        android:contentDescription="@string/app_name"
+        android:textSize="32sp"
+        android:background="@color/colorPrimaryDark"
         android:scaleType="center" />
 
     <EditText
@@ -21,34 +20,26 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
-        android:layout_marginLeft="14dp"
-        android:layout_marginRight="114dp"
         android:layout_marginTop="16dp"
         android:hint="@string/date"
-        android:inputType="date"  android:layout_marginStart="14dp" android:layout_marginEnd="114dp" />
+        android:inputType="date"  />
     <EditText
         android:id="@+id/inputText"
         android:inputType="number"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:layout_marginLeft="14dp"
-
-        android:layout_marginRight="114dp"
         android:layout_marginBottom="16dp"
         android:fontFamily="sans-serif"
-        android:hint="@string/input" android:layout_marginStart="14dp" android:layout_marginEnd="114dp" />
+        android:hint="@string/input"/>
     <EditText
         android:id="@+id/outputText"
         android:inputType="number"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:layout_marginLeft="14dp"
-
-        android:layout_marginRight="114dp"
         android:layout_marginBottom="16dp"
         android:fontFamily="sans-serif"
-        android:hint="@string/output" android:layout_marginStart="14dp" android:layout_marginEnd="114dp" />
+        android:hint="@string/output"/>
 
 </LinearLayout>
