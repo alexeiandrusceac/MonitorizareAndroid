@@ -74,7 +74,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                                         int difference = 0;
                                         primitValue =  Integer.parseInt(primitInput.getText().toString());
                                         cheltuitValue = Integer.parseInt(cheltuitInput.getText().toString());
-
+///
                                         difference = primitValue - cheltuitValue;
 
                                         mydbHelper.insertData(dateInput.getText().toString(),primitValue,cheltuitValue,difference,0,0);
