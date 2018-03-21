@@ -102,7 +102,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                                         cheltuitValue = Integer.parseInt(cheltuitInput.getText().toString());
 ///
                                         difference = primitValue - cheltuitValue;
-
+////verifica aici
                                         mydbHelper.insertData(dateInput.getText().toString(),primitValue,cheltuitValue,difference,0,0);
                                         /*dateOuput.setText(dateInput.getText());
                                         primitOutput.setText(primitInput.getText());
@@ -149,7 +149,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         });
         return dateinput;
     }
-
+////verifica aici
     public void  loadData()
     {
         ///sqlcon.open();
