@@ -1,6 +1,7 @@
 package com.example.alexei.monitorizare;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDatabaseLockedException;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -18,6 +19,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
     public static final String INOUTTABLE = "InOutTable";
 
     //InOutTable
+    public static final String ID = "input_ID";
     public static final String DATE = "Date";
     public static final String INPUT = "Input";
     public static final String OUTPUT = "Output";
@@ -33,7 +35,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        String InputOutputTable = "create table if not exists " + INOUTTABLE + " ( " + BaseColumns._ID + " integer primary key autoincrement, "
+        String InputOutputTable = "create table if not exists " + INOUTTABLE + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + DATE + " text not null, "
                 + INPUT + " int, "
                 + OUTPUT + " int, "
@@ -69,5 +71,15 @@ public class DataBaseHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
+    }
+    public Cursor readEntry() {
+        SQLiteDatabase database = this.getWritableDatabase();
+        String query = "Select * from " + INOUTTABLE;
+        Cursor c = database.rawQuery(query, null);
+        if (c != null)
+        {
+            c.moveToFirst();
+        }
+        return c;
     }
 }

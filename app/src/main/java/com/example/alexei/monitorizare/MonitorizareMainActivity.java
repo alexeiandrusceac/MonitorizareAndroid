@@ -3,17 +3,24 @@ package com.example.alexei.monitorizare;
 //import android.content.Intent;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,6 +36,9 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         private EditText dateOuput;
         private EditText primitOutput;
         private EditText cheltuitOutput;
+        private TableLayout dataTableLayout;
+        ProgressDialog progressBar;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,6 +46,22 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         dateOuput = (EditText)findViewById(R.id.dateTextOutput);
         primitOutput = (EditText)findViewById(R.id.inputPrimitOutput);
         cheltuitOutput = (EditText)findViewById(R.id.outputCheltuitOutput);
+
+        progressBar = new ProgressDialog(this);
+
+        dataTableLayout = (TableLayout)findViewById(R.id.table_Layout);
+        dataTableLayout.setStretchAllColumns(true);
+
+        startLoadDataFromDataBase();
+
+    }
+
+    private void startLoadDataFromDataBase() {
+        progressBar.setCancelable(false);
+        progressBar.setMessage("Incarcarea datelor....");
+        progressBar.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        progressBar.show();
+        new MyAsync().execute(0);
     }
 
     public void myClickHandler (View view)
@@ -124,4 +150,54 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         return dateinput;
     }
 
+    public void  loadData()
+    {
+        ///sqlcon.open();
+        Cursor c = mydbHelper.readEntry();
+        int rows = c.getCount();
+        int cols = c.getColumnCount();
+        c.moveToFirst();
+        // outer for loop
+        for (int i = 0; i < rows; i++) {
+            TableRow row = new TableRow(this);
+            row.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT));
+            // inner for loop
+            for (int j = 0; j < cols; j++) {
+                TextView tv = new TextView(this);
+                tv.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.WRAP_CONTENT,
+                        TableLayout.LayoutParams.WRAP_CONTENT));
+
+                tv.setText(c.getString(j));
+                row.addView(tv);
+            }
+            c.moveToNext();
+            dataTableLayout.addView(row);
+        }
+
+    }
+    class MyAsync extends AsyncTask<Integer, Integer,String>
+    {
+        @Override
+        protected String doInBackground(Integer... params)
+        {
+            try
+            {
+                Thread.sleep(2000);
+
+            }
+            catch(InterruptedException ex){ex.printStackTrace();}
+            return "Incarcarea sa facut cu succes!";
+        }
+
+        protected void onPostExecute(){
+            progressBar.hide();
+            loadData();
+
+        }
+        @Override
+        protected void onPreExecute(){}
+        @Override
+        protected void onProgressUpdate(Integer... values){}
+    }
 }
