@@ -2,7 +2,6 @@ package com.example.alexei.monitorizare;
 
 //import android.content.Intent;
 import android.app.DatePickerDialog;
-import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -13,29 +12,35 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
-import android.view.Gravity;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.DatePicker;
 import android.widget.EditText;
-import android.widget.ProgressBar;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.alexei.monitorizare.database.DataBaseHelper;
+import com.example.alexei.monitorizare.database.inOutmodel.InOut;
+
 import org.w3c.dom.Text;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 
 public class MonitorizareMainActivity extends AppCompatActivity {
         DatePickerDialog datepicker;
-        DataBaseHelper mydbHelper = new DataBaseHelper(this.getApplicationContext());
+        private DataBaseHelper mydbHelper;
         final Context mContext = this;
+        private List<InOut> listOfData = new ArrayList<>();
         private EditText dateOuput;
         private EditText primitOutput;
         private EditText cheltuitOutput;
+        private TextView idOutput;
         private TableLayout dataTableLayout;
         ProgressDialog progressBar;
 
@@ -46,8 +51,11 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         dateOuput = (EditText)findViewById(R.id.dateTextOutput);
         primitOutput = (EditText)findViewById(R.id.inputPrimitOutput);
         cheltuitOutput = (EditText)findViewById(R.id.outputCheltuitOutput);
+        idOutput =(TextView)findViewById(R.id.idText);
 
         progressBar = new ProgressDialog(this);
+        mydbHelper = new DataBaseHelper(this);
+
 
         dataTableLayout = (TableLayout)findViewById(R.id.table_Layout);
         dataTableLayout.setStretchAllColumns(true);
@@ -83,7 +91,10 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                 final EditText cheltuitInput = (EditText)findViewById(R.id.outputText);
                 final  EditText dateInput  =  setDate(dialogView);
                // final TextView differenceInput = (TextView)findViewById(R.id.differenceText);
-
+                final String  dateInsert = dateInput.getText().toString();
+                final int inputInsert = Integer.parseInt(primitInput.getText().toString());
+                final int outputInsert = Integer.parseInt(cheltuitInput.getText().toString());
+                final int diferentaInsert = inputInsert - outputInsert;
 
                 // set dialog message
                 alertDialogBuilder
@@ -92,21 +103,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog,
                                                         int id) {
-                                        // get user input and set it to etOutput
-                                        // edit text
-                                        int primitValue = 0;
-                                        int cheltuitValue = 0;
 
-                                        int difference = 0;
-                                        primitValue =  Integer.parseInt(primitInput.getText().toString());
-                                        cheltuitValue = Integer.parseInt(cheltuitInput.getText().toString());
-///
-                                        difference = primitValue - cheltuitValue;
-////verifica aici
-                                        mydbHelper.insertData(dateInput.getText().toString(),primitValue,cheltuitValue,difference,0,0);
-                                        /*dateOuput.setText(dateInput.getText());
-                                        primitOutput.setText(primitInput.getText());
-                                        cheltuitOutput.setText(cheltuitInput.getText());*/
 
                                     }
                                 })
@@ -121,11 +118,38 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                 AlertDialog alertDialog = alertDialogBuilder.create();
                 // show it
                 alertDialog.show();
+                alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        createData(dateInsert, inputInsert, outputInsert, diferentaInsert, 0, 0);
+                    }
+                    // Show toast message when no text is entered
+                        /*if (TextUtils.isEmpty(inputNote.getText().toString())) {
+                            Toast.makeText(MonitorizareMainActivity.this, "Enter note!", Toast.LENGTH_SHORT).show();
+                            return;
+                        } else {
+                            alertDialog.dismiss();
+                        }*/
+
+                    // check if user updating note
+                       /* if (shouldUpdate && note != null) {
+                            // update note by it's id
+                            updateNote(inputNote.getText().toString(), position);
+                        } else {
+                            // create new note
+
+                        }*/
+
+                });
             }
 
         });
     }
-
+    public void createData(String date, int primire,int cheltuire,int diferenta,int inputTotal,int outputTotal)
+    {
+        long id = mydbHelper.insertData(date,primire,cheltuire,diferenta,inputTotal,outputTotal);
+        //InOut data = mydbHelper.getData();
+    }
     public EditText setDate(View dialogView)
     {
         final EditText dateinput = (EditText) dialogView.findViewById(R.id.dateText);
@@ -150,32 +174,25 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         return dateinput;
     }
 ////verifica aici
-    public void  loadData()
-    {
+    public void  loadData() {
         ///sqlcon.open();
-        Cursor c = mydbHelper.readEntry();
-        int rows = c.getCount();
-        int cols = c.getColumnCount();
-        c.moveToFirst();
-        // outer for loop
-        for (int i = 0; i < rows; i++) {
-            TableRow row = new TableRow(this);
-            row.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
-                    TableLayout.LayoutParams.WRAP_CONTENT));
-            // inner for loop
-            for (int j = 0; j < cols; j++) {
-                TextView tv = new TextView(this);
-                tv.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.WRAP_CONTENT,
-                        TableLayout.LayoutParams.WRAP_CONTENT));
-
-                tv.setText(c.getString(j));
-                row.addView(tv);
-            }
-            c.moveToNext();
-            dataTableLayout.addView(row);
+        listOfData.addAll(mydbHelper.getData());
+        for (InOut item : listOfData) {
+            TableRow tableRow = new TableRow(this);
+            idOutput.setText(item.getId());
+            dateOuput.setText(item.getDate());
+            primitOutput.setText(item.getInput());
+            cheltuitOutput.setText(item.getOutput());
+            tableRow.addView(idOutput);
+            tableRow.addView(dateOuput);
+            tableRow.addView(primitOutput);
+            tableRow.addView(cheltuitOutput);
+            dataTableLayout.addView(tableRow);
         }
 
     }
+
+
     class MyAsync extends AsyncTask<Integer, Integer,String>
     {
         @Override
@@ -184,7 +201,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
             try
             {
                 Thread.sleep(2000);
-
+                loadData();
             }
             catch(InterruptedException ex){ex.printStackTrace();}
             return "Incarcarea sa facut cu succes!";
@@ -192,8 +209,6 @@ public class MonitorizareMainActivity extends AppCompatActivity {
 
         protected void onPostExecute(){
             progressBar.hide();
-            loadData();
-
         }
         @Override
         protected void onPreExecute(){}
