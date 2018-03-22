@@ -24,14 +24,14 @@ public class InOut  {
     private int inputTotal;
     private int outputTotal;
 
-    public static final String CREATE_TABLE =
+    /*public static final String CREATE_TABLE =
             "create table if not exists " + INOUTTABLE + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
             + DATE + " text not null, "
             + INPUT + " int, "
             + OUTPUT + " int, "
             + DIFFERENCE + "text, "
             + INPUTTOTAL + " text, "
-            + OUTPUTTOTAL + " text);";
+            + OUTPUTTOTAL + " text);";*/
 
 public InOut(){}
 public InOut(int id, String date,int input,int output, int difference,int inputTotal,int outputTotal)

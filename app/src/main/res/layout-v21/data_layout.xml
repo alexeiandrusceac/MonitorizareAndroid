@@ -16,7 +16,7 @@
         android:scaleType="center"
 
 
-        tools:targetApi="jelly_bean"/>
+        tools:targetApi="lollipop"/>
 
     <EditText
         android:id="@+id/dateText"
@@ -26,7 +26,7 @@
         android:layout_marginTop="16dp"
         android:hint="@string/date"
         android:inputType="date"
-        android:textAppearance="@android:style/TextAppearance.Material.Medium" />
+        tools:targetApi="lollipop"/>
 
     <EditText
         android:id="@+id/inputText"
@@ -36,8 +36,7 @@
         android:layout_marginTop="4dp"
         android:hint="@string/input"
         android:inputType="number"
-        android:textAppearance="@android:style/TextAppearance.Material.Medium"
-        tools:targetApi="jelly_bean" />
+        tools:targetApi="lollipop"/>
 
     <EditText
         android:id="@+id/outputText"
@@ -47,7 +46,6 @@
         android:layout_marginTop="4dp"
         android:hint="@string/output"
         android:inputType="number"
-        android:textAppearance="@android:style/TextAppearance.Material.Medium"
-        tools:targetApi="jelly_bean" />
+        tools:targetApi="lollipop" />
 
 </LinearLayout>

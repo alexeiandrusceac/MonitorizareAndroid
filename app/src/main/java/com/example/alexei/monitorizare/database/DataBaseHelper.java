@@ -59,7 +59,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-       db.execSQL(InOut.INOUTTABLE);
+       //db.execSQL(InOut.INOUTTABLE);
     }
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
