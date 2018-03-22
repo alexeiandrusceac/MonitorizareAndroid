@@ -2,12 +2,16 @@ package com.example.alexei.monitorizare;
 
 //import android.content.Intent;
 import android.app.DatePickerDialog;
+import android.app.Notification;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.database.Cursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Message;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -27,6 +31,7 @@ import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 
 import org.w3c.dom.Text;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -35,6 +40,7 @@ import java.util.List;
 public class MonitorizareMainActivity extends AppCompatActivity {
         DatePickerDialog datepicker;
         private DataBaseHelper mydbHelper;
+    private SQLiteDatabase mDb;
         final Context mContext = this;
         private List<InOut> listOfData = new ArrayList<>();
         private EditText dateOuput;
@@ -55,12 +61,30 @@ public class MonitorizareMainActivity extends AppCompatActivity {
 
         progressBar = new ProgressDialog(this);
         mydbHelper = new DataBaseHelper(this);
+        try {
+            mydbHelper.updateDataBase();
+        } catch (IOException mIOException) {
+            throw new Error("UnableToUpdateDatabase");
+        }
 
+        try {
+            mDb = mydbHelper.getWritableDatabase();
+        } catch (SQLException mSQLException) {
+            throw mSQLException;
+        }
+        startLoadDataFromDataBase();
 
+        FloatingActionButton but = (FloatingActionButton) findViewById(R.id.buttonFloating);
+        but.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view)
+            {
+                showdialog(false,null,-1);
+            }
+        });
         dataTableLayout = (TableLayout)findViewById(R.id.table_Layout);
         dataTableLayout.setStretchAllColumns(true);
 
-        startLoadDataFromDataBase();
 
 
     }
@@ -70,61 +94,56 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         progressBar.setMessage("Incarcarea datelor....");
         progressBar.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         progressBar.show();
-        new MyAsync().execute(0);
+        loadData();
+        // new MyAsync().execute(0);
     }
 
-    public void myClickHandler (View view)
-    {
-        FloatingActionButton but = (FloatingActionButton) findViewById(R.id.buttonFloating);
+    public void showdialog (final boolean shouldUpdate, final InOut dataRow, final int position) {
+        LayoutInflater li = LayoutInflater.from(getApplicationContext());
+        View dialogView = li.inflate(R.layout.data_layout, null);
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MonitorizareMainActivity.this);
 
-        but.setOnClickListener(new View.OnClickListener(){
+        alertDialogBuilder.setView(dialogView);
+
+        final EditText primitInput =  dialogView.findViewById(R.id.inputText);
+        final EditText cheltuitInput = dialogView.findViewById(R.id.outputText);
+        final EditText dateInput = setDate(dialogView);
+        // final TextView differenceInput = (TextView)findViewById(R.id.differenceText);
+
+
+
+        // set dialog message
+        alertDialogBuilder
+                .setCancelable(false)
+                .setPositiveButton("OK",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+
+
+                            }
+                        })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog,
+                                                int id) {
+                                dialog.cancel();
+                            }
+                        });
+        // create alert dialog
+       final AlertDialog alertDialog = alertDialogBuilder.create();
+        // show it
+        alertDialog.show();
+        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view)
-            {
-                LayoutInflater li = LayoutInflater.from(mContext);
-                View dialogView = li.inflate(R.layout.data_layout, null);
-                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
-                        mContext);
-                //alertDialogBuilder.setIcon(R.drawable.ic_launcher);
-                // set custom_dialog.xml to alertdialog builder
-                alertDialogBuilder.setView(dialogView);
-                final EditText primitInput = (EditText)findViewById(R.id.inputText);
-                final EditText cheltuitInput = (EditText)findViewById(R.id.outputText);
-                final  EditText dateInput  =  setDate(dialogView);
-               // final TextView differenceInput = (TextView)findViewById(R.id.differenceText);
-                final String  dateInsert = dateInput.getText().toString();
+            public void onClick(View v) {
+                final String dateInsert = dateInput.getText().toString();
                 final int inputInsert = Integer.parseInt(primitInput.getText().toString());
                 final int outputInsert = Integer.parseInt(cheltuitInput.getText().toString());
                 final int diferentaInsert = inputInsert - outputInsert;
 
-                // set dialog message
-                alertDialogBuilder
-                        .setCancelable(false)
-                        .setPositiveButton("OK",
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog,
-                                                        int id) {
-
-
-                                    }
-                                })
-                        .setNegativeButton("Cancel",
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog,
-                                                        int id) {
-                                        dialog.cancel();
-                                    }
-                                });
-                // create alert dialog
-                AlertDialog alertDialog = alertDialogBuilder.create();
-                // show it
-                alertDialog.show();
-                alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        createData(dateInsert, inputInsert, outputInsert, diferentaInsert, 0, 0);
-                    }
-                    // Show toast message when no text is entered
+                createData(dateInsert, inputInsert, outputInsert, diferentaInsert, 0, 0);
+            }
+            // Show toast message when no text is entered
                         /*if (TextUtils.isEmpty(inputNote.getText().toString())) {
                             Toast.makeText(MonitorizareMainActivity.this, "Enter note!", Toast.LENGTH_SHORT).show();
                             return;
@@ -132,7 +151,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                             alertDialog.dismiss();
                         }*/
 
-                    // check if user updating note
+            // check if user updating note
                        /* if (shouldUpdate && note != null) {
                             // update note by it's id
                             updateNote(inputNote.getText().toString(), position);
@@ -141,15 +160,23 @@ public class MonitorizareMainActivity extends AppCompatActivity {
 
                         }*/
 
-                });
-            }
-
         });
     }
+
+
     public void createData(String date, int primire,int cheltuire,int diferenta,int inputTotal,int outputTotal)
     {
         long id = mydbHelper.insertData(date,primire,cheltuire,diferenta,inputTotal,outputTotal);
-        //InOut data = mydbHelper.getData();
+
+        InOut data = mydbHelper.getRow(id);
+
+        if(data !=null)
+        {
+            listOfData.add(0,data);
+
+        }
+
+
     }
     public EditText setDate(View dialogView)
     {
@@ -178,25 +205,30 @@ public class MonitorizareMainActivity extends AppCompatActivity {
     public void  loadData() {
         ///sqlcon.open();
         listOfData.addAll(mydbHelper.getData());
-        if(listOfData != null) {
+        /*try {
+            if (!listOfData.isEmpty()) {
 
-            for (InOut item : listOfData) {
-                TableRow tableRow = new TableRow(this);
-                idOutput.setText(item.getId());
-                dateOuput.setText(item.getDate());
-                primitOutput.setText(item.getInput());
-                cheltuitOutput.setText(item.getOutput());
-                tableRow.addView(idOutput);
-                tableRow.addView(dateOuput);
-                tableRow.addView(primitOutput);
-                tableRow.addView(cheltuitOutput);
-                dataTableLayout.addView(tableRow);
+                for (InOut item : listOfData) {
+                    TableRow tableRow = new TableRow(this);
+                    idOutput.setText(item.getId());
+                    dateOuput.setText(item.getDate());
+                    primitOutput.setText(item.getInput());
+                    cheltuitOutput.setText(item.getOutput());
+                    tableRow.addView(idOutput);
+                    tableRow.addView(dateOuput);
+                    tableRow.addView(primitOutput);
+                    tableRow.addView(cheltuitOutput);
+                    dataTableLayout.addView(tableRow);
+                }
             }
         }
+        catch(Exception ex)
+        {
+            ex.getMessage();
+        }*/
 
 
     }
-
 
     class MyAsync extends AsyncTask<Integer, Integer,String>
     {
@@ -206,7 +238,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
             try
             {
                 Thread.sleep(2000);
-                loadData();
+
             }
             catch(InterruptedException ex){ex.printStackTrace();}
             return "Incarcarea sa facut cu succes!";
