@@ -62,6 +62,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
 
         startLoadDataFromDataBase();
 
+
     }
 
     private void startLoadDataFromDataBase() {
@@ -177,18 +178,22 @@ public class MonitorizareMainActivity extends AppCompatActivity {
     public void  loadData() {
         ///sqlcon.open();
         listOfData.addAll(mydbHelper.getData());
-        for (InOut item : listOfData) {
-            TableRow tableRow = new TableRow(this);
-            idOutput.setText(item.getId());
-            dateOuput.setText(item.getDate());
-            primitOutput.setText(item.getInput());
-            cheltuitOutput.setText(item.getOutput());
-            tableRow.addView(idOutput);
-            tableRow.addView(dateOuput);
-            tableRow.addView(primitOutput);
-            tableRow.addView(cheltuitOutput);
-            dataTableLayout.addView(tableRow);
+        if(listOfData != null) {
+
+            for (InOut item : listOfData) {
+                TableRow tableRow = new TableRow(this);
+                idOutput.setText(item.getId());
+                dateOuput.setText(item.getDate());
+                primitOutput.setText(item.getInput());
+                cheltuitOutput.setText(item.getOutput());
+                tableRow.addView(idOutput);
+                tableRow.addView(dateOuput);
+                tableRow.addView(primitOutput);
+                tableRow.addView(cheltuitOutput);
+                dataTableLayout.addView(tableRow);
+            }
         }
+
 
     }
 
