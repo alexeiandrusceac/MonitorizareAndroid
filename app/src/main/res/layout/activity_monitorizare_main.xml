@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/coordinator_layout"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.alexei.monitorizare.view.MonitorizareMainActivity">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical">
 
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
@@ -19,25 +17,13 @@
             android:background="?attr/colorPrimary"
             app:popupTheme="@style/AppTheme.PopupOverlay" />
     </android.support.design.widget.AppBarLayout>
-    <ScrollView
-        android:id="@+id/scrollViewRecords"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-         >
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
 
-  <!--  <include layout="@layout/content_main" />-->
-    <!--<TableLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/table_layout"
-        android:layout_marginLeft="20dp"
-        android:layout_marginTop="55dp"
-        android:layout_below="@+id/coordinator_layout"
-        android:orientation="horizontal">
-        <TableRow
-            android:background="@color/colorAccent"
-            android:padding="@dimen/dimen_8dp">
+            android:background="@color/colorAccent">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -77,8 +63,31 @@
                 android:text="@string/difference"
                 android:textAlignment="center"
                 android:textColor="@android:color/white" />
-        </TableRow>
-<TableRow>
+        </LinearLayout>
+    <ScrollView
+        android:id="@+id/scrollViewRecords"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        >
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/table_layout"
+        android:orientation="horizontal">
+
+    </TableLayout>
+
+    </ScrollView>
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/buttonFloating"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/fab_margin"
+        android:layout_below="@id/table_layout"
+        android:src="@drawable/ic_menu_add" />
+<!--<TableRow>
         <TextView
             android:id="@+id/idText"
             android:layout_width="wrap_content"
@@ -124,129 +133,8 @@
             android:textColor="@android:color/black" />
 </TableRow>
 
-
-    </TableLayout>-->
-        <TableLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/table_layout">
-
-            <TableRow
-                android:background="@color/colorAccent"
-                android:padding="@dimen/dimen_8dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/id"
-                    android:textAlignment="center"
-                    android:textColor="@android:color/white" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/date"
-                    android:textColor="@android:color/white" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/input"
-                    android:textAlignment="center"
-                    android:textColor="@android:color/white" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/output"
-                    android:textAlignment="center"
-                    android:textColor="@android:color/white" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/difference"
-                    android:textAlignment="center"
-                    android:textColor="@android:color/white" />
-            </TableRow>
+-->
 
 
-            <!--<TextView
-                android:id="@+id/empty_data_view"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="@dimen/margin_top_no_notes"
-                android:fontFamily="sans-serif-light"
-                android:text="@string/msg_no_data"
-                android:textColor="@color/msg_no_data"
-                android:textSize="@dimen/msg_no_data" />-->
 
-            <TableRow
-                android:background="@color/colorPrimaryDark"
-                android:id="@+id/tableRowValue"
-                >
-                <TextView
-                    android:id="@+id/inputPrimitOutput"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textAlignment="center"
-                    android:textColor="@android:color/black" />
-              <!--  <TextView
-                    android:id="@+id/idText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textAlignment="center"
-                    android:textColor="@android:color/white" />
-
-                <TextView
-                    android:id="@+id/dateTextOutput"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:inputType="date"
-                    android:textColor="@android:color/white" />
-
-                <TextView
-                    android:id="@+id/inputPrimitOutput"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textAlignment="center"
-                    android:textColor="@android:color/white" />
-
-                <TextView
-                    android:id="@+id/outputCheltuitOutput"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textAlignment="center"
-                    android:textColor="@android:color/white" />
-
-                <TextView
-                    android:id="@+id/differenceText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textAlignment="center"
-                    android:textColor="@android:color/white" />-->
-            </TableRow>
-        </TableLayout>
-    </ScrollView>
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/buttonFloating"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="@dimen/fab_margin"
-
-        android:src="@drawable/ic_menu_add" />
-
-</android.support.design.widget.CoordinatorLayout>
+</LinearLayout>

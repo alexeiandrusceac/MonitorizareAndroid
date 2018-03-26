@@ -26,15 +26,27 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import javax.xml.validation.Schema;
-
+import com.example.mylibrary.ExternalSQLiteHelper;
 /**
  * Created by alexei.andrusceac on 19.03.2018.
  */
 
-public class DataBaseHelper extends SQLiteOpenHelper {
+public class DataBaseHelper extends ExternalSQLiteHelper {
+    public  static  String DATABASE_NAME="MonitorizareDB.db";
+    private static final int SCHEMA = 1;
 
+    public DataBaseHelper (Context context)
+    {
+        super(context,DATABASE_NAME,null,SCHEMA);
+    }
+    public DataBaseHelper(Context context,String sourceDirectory)
+    {
+        super(context,DATABASE_NAME,sourceDirectory,null);
+    }
+}
+/*
 private static String DB_PATH = "/data/data/com.example.alexei.monitorizare/databases/";
-    private  static  String DATABASE_NAME="MonitorizareDB";
+    private  static  String DATABASE_NAME="MonitorizareDB.db";
     private static final int SCHEMA = 1;
     private SQLiteDatabase myDataBase;
     private final Context myContext;
@@ -48,8 +60,8 @@ private static String DB_PATH = "/data/data/com.example.alexei.monitorizare/data
     private static final String DIFFERENCE = "Difference";
     private static final String INPUTTOTAL = "InputTotal";
     private static final String OUTPUTTOTAL = "OutputTotal";
-*/
-   /* public static synchronized DataBaseHelper getsInstance(Context context)
+
+    public static synchronized DataBaseHelper getsInstance(Context context)
     {
         if(sInstance == null)
         {
@@ -57,7 +69,7 @@ private static String DB_PATH = "/data/data/com.example.alexei.monitorizare/data
         }
         return sInstance;
     }
-*/
+
    public DataBaseHelper(Context context) {
         super(context, DATABASE_NAME, null, SCHEMA);
    this.myContext = context;
@@ -152,12 +164,12 @@ private static String DB_PATH = "/data/data/com.example.alexei.monitorizare/data
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
     }
-
+*/
     // Add your public helper methods to access and get content from the database.
     // You could return cursors by doing "return myDataBase.query(....)" so it'd be easy
     // to you to create adapters for your views.
 
-}
+
 /*
     @Override
     public void onConfigure(SQLiteDatabase db)

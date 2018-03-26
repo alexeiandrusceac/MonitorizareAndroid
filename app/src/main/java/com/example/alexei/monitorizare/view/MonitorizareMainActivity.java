@@ -2,23 +2,30 @@ package com.example.alexei.monitorizare.view;
 
 //import android.content.Intent;
 
+import android.Manifest;
 import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.provider.ContactsContract;
+import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewParent;
@@ -34,9 +41,11 @@ import android.widget.Toast;
 import android.widget.Toolbar;
 
 import com.example.alexei.monitorizare.R;
+import com.example.alexei.monitorizare.database.DataBaseAccess;
 import com.example.alexei.monitorizare.database.DataBaseHelper;
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -50,7 +59,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
     private SQLiteDatabase mDb;
     private RelativeLayout recycleView;
     private TextView dateOuput;
-    private TextView primitOutput;
+    private EditText primitOutput;
     private TextView cheltuitOutput;
     private TextView idOutput;
     private LinearLayout dataTableLayout;
@@ -59,7 +68,11 @@ public class MonitorizareMainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private CoordinatorLayout coordinatorLayout;
     private TextView noDataView;
-
+    private final boolean fromExternalSource = false;
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+    };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,91 +81,86 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         // noDataView = findViewById(R.id.empty_data_view);
-        coordinatorLayout = findViewById(R.id.coordinator_layout);
+       // coordinatorLayout = findViewById(R.id.coordinator_layout);
         dateOuput = (TextView) findViewById(R.id.dateTextOutput);
-        primitOutput = (TextView) findViewById(R.id.inputPrimitOutput);
+        primitOutput = (EditText) findViewById(R.id.inputPrimitOutput);
         cheltuitOutput = (TextView) findViewById(R.id.outputCheltuitOutput);
         idOutput = (TextView) findViewById(R.id.idText);
 
-        mydbHelper = new DataBaseHelper(getApplicationContext());
-        try {
-            mydbHelper.createDataBase();
-        } catch (IOException ex) {
-            ex.getMessage();
+
+        if (fromExternalSource && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
+        } else {
+            loadData();
         }
 
 
-        loadData();
-        //countRecords();
         FloatingActionButton but = (FloatingActionButton) findViewById(R.id.buttonFloating);
         but.setOnClickListener(new OnClickListenerCreateData());
 
     }
 
-
-    /*public void showdialog () {
-
-
-
-
-        // set dialog message
-        new AlertDialog.Builder(context)
-                .setCancelable(false)
-                .setView(dialogView)
-                .setTitle("Creeaza inregistrare")
-                .setPositiveButton("OK",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                Context context = dialogView.getRootView().getContext();
-
-                        })
-                .setNegativeButton("Cancel",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog,
-                                                int id) {
-                                dialog.cancel();
-                            }
-                        });
-
-    }
-*/
-
-    public void countRecords() {
-
-        int recordCount = new TableDataController(this).count();
-
-    }
-
     public void loadData() {
+        DataBaseAccess dataBaseAccess;
+        if (fromExternalSource) {
+            // Check the external database file. External database must be available for the first time deployment.
+            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
+            File dbFile = new File(externalDirectory, DataBaseHelper.DATABASE_NAME);
+            if (!dbFile.exists()) {
+                return;
+            }
+            // If external database is avaliable, deploy it
+            dataBaseAccess = DataBaseAccess.getInstance(this, externalDirectory);
+        } else {
+            // From assets
+            dataBaseAccess = DataBaseAccess.getInstance(this, null);
+        }
 
         TableLayout tableLayoutRecords = (TableLayout) findViewById(R.id.table_layout);
         //tableLayoutRecords.removeAllViewsInLayout();
-TableRow tableRow = (TableRow) findViewById(R.id.tableRowValue);
-        List<InOut> listOfData = new TableDataController(this).getAllPosts();
-        if (listOfData.size() > 0) {
-        for(InOut inOut : listOfData)
+       // TableRow tableRow = (TableRow) findViewById(R.id.tableRowValue);
+
+        dataBaseAccess.open();
+        List<InOut> listOfData = dataBaseAccess.getAllPosts();
+        dataBaseAccess.close();
+
+        TableRow rowHeader = new TableRow(this);
+        rowHeader.setBackgroundColor(Color.parseColor("#c0c0c0"));
+        rowHeader.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
+                TableLayout.LayoutParams.WRAP_CONTENT));
+        String[] headerText={"ID","Data","Primire","Cheltuire","Diferenta"};
+
+        for(String c:headerText) {
+            TextView tv = new TextView(this);
+            tv.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT,
+                    TableRow.LayoutParams.WRAP_CONTENT));
+            tv.setGravity(Gravity.CENTER);
+            tv.setTextSize(18);
+            tv.setPadding(5, 5, 5, 5);
+            tv.setText(c);
+            rowHeader.addView(tv);
+        }
+        tableLayoutRecords.addView(rowHeader);
+        if (listOfData.size() > 0)
         {
-
-                /*idOutput.setText(String.valueOf(inOut.ID)); //.setText(inOut.ID);
-                dateOuput.setText(String.valueOf(inOut.DATE));*/
-                //primitOutput.setText(String.valueOf(inOut.INPUT));
-                //cheltuitOutput.setText(String.valueOf(inOut.OUTPUT));
-               /* tableLayoutRecords.addView(idOutput);
-                tableLayoutRecords.addView(dateOuput);*/
-            primitOutput.setText(String.valueOf(inOut.INPUT));
-         tableRow.addView(primitOutput);
-//                /tableRow.addView(textView);
-                //tableRow.addView(cheltuitOutput);
-tableLayoutRecords.addView(tableRow);
-
-                    /*tableRow.addView(idOutput);
-                    tableRow.addView(dateOuput);
-                    tableRow.addView(primitOutput);
-                    tableRow.addView(cheltuitOutput);
-                    dataTableLayout.addView(tableRow);*/
+            for(InOut inOut: listOfData) {
+                TableRow row = new TableRow(this);
+                row.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
+                String[] colText = {inOut.ID +"",inOut.DATE,String.valueOf(inOut.INPUT),String.valueOf(inOut.OUTPUT),String.valueOf(inOut.DIFFERENCE)};
+                for(String text : colText)
+                {
+                    TextView tv = new TextView(this);
+                    tv.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT,TableRow.LayoutParams.WRAP_CONTENT));
+                    tv.setGravity(Gravity.CENTER);
+                    tv.setTextSize(16);
+                    tv.setText(text);
+                    row.addView(tv);
+                }
+                tableLayoutRecords.addView(row);
             }
-
-        } else {
+        }
+        else
+        {
             TextView locationItem = new TextView(this);
             locationItem.setPadding(8, 8, 8, 8);
             locationItem.setText("NU SUNT DATE");
@@ -160,6 +168,18 @@ tableLayoutRecords.addView(tableRow);
             tableLayoutRecords.addView(locationItem);
             //  Toast.makeText(context, "NU SUNT DATE", Toast.LENGTH_SHORT).show();
 
+        }
+
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == REQUEST_EXTERNAL_STORAGE) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission is granted
+                loadData();
+            } else {
+                Toast.makeText(this, "Until you grant the permission, we cannot display the quotes", Toast.LENGTH_SHORT).show();
+            }
         }
 
     }
