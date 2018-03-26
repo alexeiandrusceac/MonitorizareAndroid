@@ -15,5 +15,6 @@ public class InOut {
     public int INPUTTOTAL;
     public int OUTPUTTOTAL;
 
+    public InOut(){}
 
 }

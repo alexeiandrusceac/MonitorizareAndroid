@@ -1,68 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="@dimen/dialog_dim">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight=".3"
-            android:text="@string/date"
-            />
-        <EditText
-            android:id="@+id/dateText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight=".7"
-            android:imeOptions="actionDone"
-            android:singleLine="true"/>
-    </LinearLayout>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-        
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight=".3"
-            android:text="@string/input"/>
-        <EditText
-            android:id="@+id/inputText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight=".7"
-            android:imeOptions="actionDone"
-            android:inputType="number"
-            android:singleLine="true"/>
-    </LinearLayout>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight=".3"
-            android:text="@string/output"/>
-        <EditText
-            android:id="@+id/outputText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight=".7"
-            android:imeOptions="actionDone"
-            android:inputType="number"
-            android:singleLine="true"/>
-    </LinearLayout>
+    xmlns:tools="http://schemas.android.com/tools" android:orientation="vertical"
+
+    android:layout_width="369dp"
+
+    android:layout_height="wrap_content">
+
+
+
+    <TextView
+
+
+
+        android:layout_width="match_parent"
+
+        android:layout_height="64dp"
+
+        android:text="@string/app_name"
+
+        android:textAlignment="center"
+
+        android:fontFamily="sans-serif"
+
+        android:textSize="32sp"
+
+        android:background="@color/colorPrimaryDark"
+
+        android:scaleType="center"
+
+
+
+
+
+        tools:targetApi="jelly_bean"/>
+
+    <EditText
+
+        android:id="@+id/dateText"
+
+        android:layout_width="match_parent"
+
+        android:layout_height="wrap_content"
+
+        android:layout_marginBottom="4dp"
+
+        android:layout_marginTop="16dp"
+
+        android:hint="@string/date"
+
+        android:inputType="date"  />
+
+    <EditText
+
+        android:id="@+id/inputText"
+
+        android:inputType="number"
+
+        android:layout_width="match_parent"
+
+        android:layout_height="wrap_content"
+
+        android:layout_marginTop="4dp"
+
+        android:layout_marginBottom="16dp"
+
+        android:fontFamily="sans-serif"
+
+        android:hint="@string/input"  tools:targetApi="jelly_bean"/>
+
+    <EditText
+
+        android:id="@+id/outputText"
+
+        android:inputType="number"
+
+        android:layout_width="match_parent"
+
+        android:layout_height="wrap_content"
+
+        android:layout_marginTop="4dp"
+
+        android:layout_marginBottom="16dp"
+
+        android:fontFamily="sans-serif"
+
+        android:hint="@string/output"  tools:targetApi="jelly_bean"/>
+
+
+
 </LinearLayout>
