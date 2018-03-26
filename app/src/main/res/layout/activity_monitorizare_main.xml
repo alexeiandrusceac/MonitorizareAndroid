@@ -18,7 +18,7 @@
             app:popupTheme="@style/AppTheme.PopupOverlay" />
     </android.support.design.widget.AppBarLayout>
 
-        <LinearLayout
+        <!--<LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -63,7 +63,7 @@
                 android:text="@string/difference"
                 android:textAlignment="center"
                 android:textColor="@android:color/white" />
-        </LinearLayout>
+        </LinearLayout>-->
     <ScrollView
         android:id="@+id/scrollViewRecords"
         android:layout_width="match_parent"
@@ -72,21 +72,27 @@
 
     <TableLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_weight="2"
         android:id="@+id/table_layout"
         android:orientation="horizontal">
 
     </TableLayout>
 
     </ScrollView>
+    <android.support.design.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1">
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/buttonFloating"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/fab_margin"
-        android:layout_below="@id/table_layout"
+        android:layout_below="@id/scrollViewRecords"
         android:src="@drawable/ic_menu_add" />
+</android.support.design.widget.CoordinatorLayout>
 <!--<TableRow>
         <TextView
             android:id="@+id/idText"

@@ -15,7 +15,7 @@ import java.util.List;
  * Created by alexei.andrusceac on 26.03.2018.
  */
 
-public class DataBaseAccess  {
+public class DataBaseAccess {
     private ExternalSQLiteHelper openHelper;
     private SQLiteDatabase database;
     private static DataBaseAccess instance;
@@ -96,7 +96,7 @@ public class DataBaseAccess  {
                 //newdata.INPUTTOTAL = cursor.getInt(5);
                 //newdata.OUTPUTTOTAL = cursor.getInt(6);
                 list.add(newdata);
-            } while(cursor.moveToNext());
+            } while (cursor.moveToNext());
         }
 
         cursor.close();
@@ -115,12 +115,29 @@ public class DataBaseAccess  {
         values.put(OUTPUTTOTAL, inOut.OUTPUTTOTAL);*/
 
 
-       database.insert("InOutTable", null, values);
+        database.insert("InOutTable", null, values);
         database.close();
         if (database == null) {
             return false;
         } else {
             return true;
         }
+    }
+
+    public InOut getInsertedRow() {
+        InOut newdata = new InOut();
+
+        Cursor cursor = database.rawQuery("SELECT * FROM InOutTable WHERE input_ID == id", null);
+
+        newdata.ID = cursor.getInt(0);
+        newdata.DATE = cursor.getString(1);
+        newdata.INPUT = cursor.getInt(2);
+        newdata.OUTPUT = cursor.getInt(3);
+        newdata.DIFFERENCE = cursor.getInt(4);
+        //newdata.INPUTTOTAL = cursor.getInt(5);
+        //newdata.OUTPUTTOTAL = cursor.getInt(6);
+        cursor.close();
+        return newdata;
+
     }
 }

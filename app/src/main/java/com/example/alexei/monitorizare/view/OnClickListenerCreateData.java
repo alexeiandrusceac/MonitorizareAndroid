@@ -69,6 +69,7 @@ new AlertDialog.Builder(context)
                     public void onClick(DialogInterface dialog, int which) {
 
                         final InOut inOut = new InOut();
+
                         inOut.DATE = dateInput.getText().toString();
                         inOut.INPUT = Integer.parseInt(primitInput.getText().toString());
                         inOut.OUTPUT = Integer.parseInt(cheltuitInput.getText().toString());
@@ -84,8 +85,8 @@ new AlertDialog.Builder(context)
                         } else {
                             Toast.makeText(context, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
                         }
-
-                        ((MonitorizareMainActivity) context).loadData();
+                                                            ////Verifica aici
+                        ((MonitorizareMainActivity) context).loadInsertedRow();
                     }
                 })
 .setNegativeButton("Cancel",
