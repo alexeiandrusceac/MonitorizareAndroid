@@ -75,7 +75,8 @@
         android:layout_height="match_parent"
         android:layout_weight="2"
         android:id="@+id/table_layout"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:onClick="event">
 
     </TableLayout>
 
@@ -89,6 +90,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
+        android:layout_alignParentBottom = "true"
+        android:layout_alignParentRight= "true"
         android:layout_margin="@dimen/fab_margin"
         android:layout_below="@id/scrollViewRecords"
         android:src="@drawable/ic_menu_add" />

@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 import com.example.mylibrary.ExternalSQLiteHelper;
@@ -103,6 +104,22 @@ public class DataBaseAccess {
         return list;
     }
 
+    public int updateData(InOut inOut) {
+        ContentValues values = new ContentValues();
+        values.put("Date", inOut.DATE);
+        values.put("Input", inOut.INPUT);
+        values.put("Output", inOut.OUTPUT);
+        values.put("Difference", inOut.DIFFERENCE);
+        /*values.put(INPUTTOTAL, inOut.INPUTTOTAL);
+        values.put(OUTPUTTOTAL, inOut.OUTPUTTOTAL);*/
+        return database.update("InOutTable", values, "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
+
+    }
+
+    public void deleteData(InOut inOut) {
+        database.delete("InOutTable", "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
+        database.close();
+    }
 
     public boolean insertData(InOut inOut) {
         ContentValues values = new ContentValues();
@@ -116,6 +133,8 @@ public class DataBaseAccess {
 
 
         database.insert("InOutTable", null, values);
+
+
         database.close();
         if (database == null) {
             return false;
@@ -127,15 +146,18 @@ public class DataBaseAccess {
     public InOut getInsertedRow() {
         InOut newdata = new InOut();
 
-        Cursor cursor = database.rawQuery("SELECT * FROM InOutTable WHERE input_ID == id", null);
+        Cursor cursor = database.rawQuery("SELECT  *  FROM InOutTable ORDER BY input_ID DESC LIMIT 1;", null);
+        if (cursor.moveToFirst()) {
 
-        newdata.ID = cursor.getInt(0);
-        newdata.DATE = cursor.getString(1);
-        newdata.INPUT = cursor.getInt(2);
-        newdata.OUTPUT = cursor.getInt(3);
-        newdata.DIFFERENCE = cursor.getInt(4);
-        //newdata.INPUTTOTAL = cursor.getInt(5);
-        //newdata.OUTPUTTOTAL = cursor.getInt(6);
+            newdata.ID = cursor.getInt(0);
+            newdata.DATE = cursor.getString(1);
+            newdata.INPUT = cursor.getInt(2);
+            newdata.OUTPUT = cursor.getInt(3);
+            newdata.DIFFERENCE = cursor.getInt(4);
+            //newdata.INPUTTOTAL = cursor.getInt(5);
+            //newdata.OUTPUTTOTAL = cursor.getInt(6);
+
+        }
         cursor.close();
         return newdata;
 

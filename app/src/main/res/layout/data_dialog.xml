@@ -2,39 +2,33 @@
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
 
-    xmlns:tools="http://schemas.android.com/tools" android:orientation="vertical"
-
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="369dp"
 
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
 
+    android:orientation="vertical">
 
 
     <TextView
-
-
 
         android:layout_width="match_parent"
 
         android:layout_height="64dp"
 
+        android:background="@color/colorPrimaryDark"
+
+        android:fontFamily="sans-serif"
+
+        android:scaleType="center"
+
         android:text="@string/app_name"
 
         android:textAlignment="center"
 
-        android:fontFamily="sans-serif"
-
         android:textSize="32sp"
 
-        android:background="@color/colorPrimaryDark"
-
-        android:scaleType="center"
-
-
-
-
-
-        tools:targetApi="jelly_bean"/>
+        tools:targetApi="jelly_bean" />
 
     <EditText
 
@@ -50,44 +44,45 @@
 
         android:hint="@string/date"
 
-        android:inputType="date"  />
+        android:inputType="date" />
 
     <EditText
 
         android:id="@+id/inputText"
 
-        android:inputType="number"
-
         android:layout_width="match_parent"
 
         android:layout_height="wrap_content"
 
-        android:layout_marginTop="4dp"
-
         android:layout_marginBottom="16dp"
+
+        android:layout_marginTop="4dp"
 
         android:fontFamily="sans-serif"
 
-        android:hint="@string/input"  tools:targetApi="jelly_bean"/>
+        android:hint="@string/input"
+
+        android:inputType="number"
+        tools:targetApi="jelly_bean" />
 
     <EditText
 
         android:id="@+id/outputText"
 
-        android:inputType="number"
-
         android:layout_width="match_parent"
 
         android:layout_height="wrap_content"
 
-        android:layout_marginTop="4dp"
-
         android:layout_marginBottom="16dp"
+
+        android:layout_marginTop="4dp"
 
         android:fontFamily="sans-serif"
 
-        android:hint="@string/output"  tools:targetApi="jelly_bean"/>
+        android:hint="@string/output"
 
+        android:inputType="number"
+        tools:targetApi="jelly_bean" />
 
 
 </LinearLayout>

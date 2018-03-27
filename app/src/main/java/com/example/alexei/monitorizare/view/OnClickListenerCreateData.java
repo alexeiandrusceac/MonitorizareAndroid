@@ -30,23 +30,22 @@ public class OnClickListenerCreateData implements View.OnClickListener {
     DatePickerDialog datepicker;
     Context context;
 
-    private final  boolean fromExternalSource = false;
+    private final boolean fromExternalSource = false;
 
     @Override
-    public void onClick(View view)
-    {
+    public void onClick(View view) {
         final DataBaseAccess dataBaseAccess;
         context = view.getRootView().getContext();
-        LayoutInflater layoutInflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-       final View formView = layoutInflater.inflate(R.layout.data_dialog,null,false);
+        LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        final View formView = layoutInflater.inflate(R.layout.data_dialog, null, false);
 
-        final EditText primitInput =  (EditText) formView.findViewById(R.id.inputText);
+        final EditText primitInput = (EditText) formView.findViewById(R.id.inputText);
         final EditText cheltuitInput = (EditText) formView.findViewById(R.id.outputText);
         //final EditText dateInput = (EditText)formView.findViewById(R.id.dateText);
         final EditText dateInput = setDate(formView);
         // final TextView differenceInput = (TextView)findViewById(R.id.differenceText);
 
-          //              final String dateInsert = dateInput.getText().toString();
+        //              final String dateInsert = dateInput.getText().toString();
         if (fromExternalSource) {
             // Check the external database file. External database must be available for the first time deployment.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
@@ -60,46 +59,46 @@ public class OnClickListenerCreateData implements View.OnClickListener {
             // From assets
             dataBaseAccess = DataBaseAccess.getInstance(context, null);
         }
-new AlertDialog.Builder(context)
-        .setView(formView)
-        .setCancelable(false)
-        .setPositiveButton("OK",
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
+        new AlertDialog.Builder(context)
+                .setView(formView)
+                .setCancelable(false)
+                .setPositiveButton("OK",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
 
-                        final InOut inOut = new InOut();
+                                final InOut inOut = new InOut();
 
-                        inOut.DATE = dateInput.getText().toString();
-                        inOut.INPUT = Integer.parseInt(primitInput.getText().toString());
-                        inOut.OUTPUT = Integer.parseInt(cheltuitInput.getText().toString());
-                        inOut.DIFFERENCE = Integer.parseInt(primitInput.getText().toString()) - Integer.parseInt(cheltuitInput.getText().toString()) ;
-                        inOut.INPUTTOTAL= 0;
-                        inOut.OUTPUTTOTAL = 0;
+                                inOut.DATE = dateInput.getText().toString();
+                                inOut.INPUT = Integer.parseInt(primitInput.getText().toString());
+                                inOut.OUTPUT = Integer.parseInt(cheltuitInput.getText().toString());
+                                inOut.DIFFERENCE = Integer.parseInt(primitInput.getText().toString()) - Integer.parseInt(cheltuitInput.getText().toString());
+                                inOut.INPUTTOTAL = 0;
+                                inOut.OUTPUTTOTAL = 0;
 
-                        dataBaseAccess.open();
-                        boolean addSucces = dataBaseAccess.insertData(inOut);
-                        dataBaseAccess.close();
-                        if (addSucces) {
-                            Toast.makeText(context, "Informatia sa adaugat cu succes", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(context, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
-                        }
-                                                            ////Verifica aici
-                        ((MonitorizareMainActivity) context).loadInsertedRow();
-                    }
-                })
-.setNegativeButton("Cancel",
-                           new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.cancel();
-                        }
-                    }).show();
-                }
+                                dataBaseAccess.open();
+                                boolean addSucces = dataBaseAccess.insertData(inOut);
+                                dataBaseAccess.close();
+                                if (addSucces) {
+                                    Toast.makeText(context, "Informatia sa adaugat cu succes", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(context, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
+                                }
+                                ////Verifica aici
+                                ((MonitorizareMainActivity) context).loadInsertedRow();
+                            }
+                        })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.cancel();
+                            }
+                        }).show();
+    }
 
-    public EditText setDate(View dialogView)
-    {
+
+    public EditText setDate(View dialogView) {
         final EditText dateinput = (EditText) dialogView.findViewById(R.id.dateText);
         dateinput.setInputType(InputType.TYPE_NULL);
         dateinput.setOnClickListener(new View.OnClickListener() {

@@ -6,4 +6,6 @@
     <string name ="output">Cheltuit</string>
     <string name ="difference">Diferenta</string>
     <string name="msg_no_data">Nu sunt date</string>
+    <string name="lbl_edit_data_title">Editare</string>
+
 </resources>
