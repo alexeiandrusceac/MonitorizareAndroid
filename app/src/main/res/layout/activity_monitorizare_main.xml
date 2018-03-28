@@ -18,69 +18,19 @@
             app:popupTheme="@style/AppTheme.PopupOverlay" />
     </android.support.design.widget.AppBarLayout>
 
-        <!--<LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
 
-            android:background="@color/colorAccent">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/id"
-                android:textAlignment="center"
-                android:textColor="@android:color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/date"
-                android:textColor="@android:color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/input"
-                android:textAlignment="center"
-                android:textColor="@android:color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/output"
-                android:textAlignment="center"
-                android:textColor="@android:color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/difference"
-                android:textAlignment="center"
-                android:textColor="@android:color/white" />
-        </LinearLayout>-->
     <ScrollView
         android:id="@+id/scrollViewRecords"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         >
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+        </android.support.v7.widget.RecyclerView>
+</ScrollView>
 
-    <TableLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_weight="2"
-        android:id="@+id/table_layout"
-        android:orientation="horizontal"
-        android:onClick="event">
-
-    </TableLayout>
-
-    </ScrollView>
     <android.support.design.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -96,54 +46,5 @@
         android:layout_below="@id/scrollViewRecords"
         android:src="@drawable/ic_menu_add" />
 </android.support.design.widget.CoordinatorLayout>
-<!--<TableRow>
-        <TextView
-            android:id="@+id/idText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:inputType="number"
-            android:textAlignment="center"
-            android:textColor="@android:color/black" />
-
-        <EditText
-            android:id="@+id/dateTextOutput"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:inputType="date"
-            android:textColor="@android:color/black" />
-
-        <EditText
-            android:id="@+id/inputPrimitOutput"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:inputType="number"
-            android:textAlignment="center"
-            android:textColor="@android:color/black" />
-
-        <EditText
-            android:id="@+id/outputCheltuitOutput"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:inputType="number"
-            android:textAlignment="center"
-            android:textColor="@android:color/black" />
-
-        <TextView
-            android:id="@+id/differenceText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:inputType="number"
-            android:textAlignment="center"
-            android:textColor="@android:color/black" />
-</TableRow>
-
--->
-
-
 
 </LinearLayout>

@@ -8,6 +8,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.os.Build;
@@ -16,12 +17,15 @@ import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.TabLayout;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
+
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -49,9 +53,10 @@ import static android.view.View.TEXT_ALIGNMENT_CENTER;
 import static java.security.AccessController.getContext;
 
 
-public class MonitorizareMainActivity extends AppCompatActivity {
+public class MonitorizareMainActivity extends AppCompatActivity{
    // private InOutAdapter mAdapter;
     private TableRow row;
+    private InOutAdapter mAdapter;
     private RecyclerView recyclerView;
     private TextView dateOuput;
     private EditText primitOutput;
@@ -75,11 +80,9 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         tableLayoutRecords = (TableLayout) findViewById(R.id.table_layout);
-        /*dateOuput = (TextView) findViewById(R.id.dateTextOutput);
-        primitOutput = (EditText) findViewById(R.id.inputPrimitOutput);
-        cheltuitOutput = (TextView) findViewById(R.id.outputCheltuitOutput);
-        idOutput = (TextView) findViewById(R.id.idText);
-*/      row = new TableRow(this);
+        recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+        row = new TableRow(this);
+
         createColumns();
 
         if (fromExternalSource && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -89,15 +92,64 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         }
         FloatingActionButton but = (FloatingActionButton) findViewById(R.id.buttonFloating);
         but.setOnClickListener(new OnClickListenerCreateData());
-    }
-    public  void event(View view)
-    {
-    String  row =   view.getTag().toString();
-   //int  row_id = tableLayoutRecords.indexOfChild(row);
-        //View position = tableLayoutRecords.getChildAt(row.getFocusedChild().getId());
 
-        /// / showDialogEditDelete(position);
+        mAdapter = new InOutAdapter(this, listOfData);
+        //TableLayoutManager mLayoutManager = new TableLayoutManager(getApplicationContext());
+        //recyclerView.setLayoutManager(mLayoutManager);
+        recyclerView.setAdapter(mAdapter);
+        recyclerView.addOnItemTouchListener(new RecyclerTouchListener(this,
+                recyclerView, new RecyclerTouchListener.ClickListener() {
+            @Override
+            public void onClick(View view, final int position) {
+            }
+
+            @Override
+            public void onLongClick(View view, int position) {
+                showDialogEditDelete(position);
+            }
+        }));
     }
+
+    /*public View.OnClickListener addButtonListener = new View.OnClickListener() {
+       Resources res =  MonitorizareMainActivity.this.getResources();
+        @Override
+        public void onClick(View v) {
+            if (v instanceof TableRow ) {
+                Log.d("tipul","row");
+            } else if (v instanceof TextView) {
+InOut inOut = new InOut();
+String textId = ((Integer) v).getId();
+String position =   res.getResourceEntryName(v.getId());
+showDialogEditDelete(position);
+
+                //Toast.makeText(MonitorizareMainActivity.this, , Toast.LENGTH_LONG).show();
+                //Log.d("tipul", "textview");
+            } else {
+                Log.d("tipul", "huipaimi");
+            }
+            TableRow tr1=(TableRow)v;
+            TextView tv1= (TextView)tr1.getChildAt(0);
+
+            Toast.makeText(getApplicationContext(),tv1.toString(),Toast.LENGTH_SHORT).show();
+        }
+    };
+    {
+
+        view.setOnClickListener(new View.OnClickListener() {
+
+            //@Override
+            public void onClick(View v) {
+
+
+
+            }
+        });
+
+   int  row_id = tableLayoutRecords.indexOfChild(row);
+        View position = tableLayoutRecords.getChildAt(row.getFocusedChild().getId());
+
+        showDialogEditDelete(position);
+    }*/
     private void showDialogEditDelete(final int position) {
 
         CharSequence colors[] = new CharSequence[]{"Editare", "Stergere"};
@@ -269,6 +321,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
 
         for (String c : headerText) {
             TextView tv = new TextView(this);
+
             tv.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT,
                     TableRow.LayoutParams.WRAP_CONTENT));
             tv.setGravity(Gravity.CENTER);
@@ -307,6 +360,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         String[] colText = {inOut.ID + "", inOut.DATE, String.valueOf(inOut.INPUT), String.valueOf(inOut.OUTPUT), String.valueOf(inOut.DIFFERENCE)};
         for (String text : colText) {
             TextView tv = new TextView(this);
+           // tv.setOnClickListener(addButtonListener);
             tv.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
             tv.setGravity(Gravity.CENTER);
             tv.setTextSize(16);
@@ -344,7 +398,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         }
 
         dataBaseAccess.open();
-        List<InOut> listOfData = dataBaseAccess.getAllPosts();
+        listOfData = dataBaseAccess.getAllPosts();
         dataBaseAccess.close();
 
         if (listOfData.size() > 0) {
@@ -358,6 +412,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                 String[] colText = {inOut.ID + "", inOut.DATE, String.valueOf(inOut.INPUT), String.valueOf(inOut.OUTPUT), String.valueOf(inOut.DIFFERENCE)};
                 for (String text : colText) {
                     TextView tv = new TextView(this);
+                    //tv.setOnClickListener(addButtonListener);
                     tv.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
                     tv.setGravity(Gravity.CENTER);
                     tv.setTextSize(16);
