@@ -4,6 +4,8 @@ package com.example.alexei.monitorizare.view;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -24,6 +26,8 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
@@ -31,6 +35,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.GridLayoutAnimationController;
+import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -39,117 +45,108 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
 import com.example.alexei.monitorizare.R;
 import com.example.alexei.monitorizare.database.DataBaseAccess;
 import com.example.alexei.monitorizare.database.DataBaseHelper;
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 
+import org.w3c.dom.Text;
+
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+
+import de.codecrafters.tableview.TableView;
+import de.codecrafters.tableview.listeners.TableDataClickListener;
+import de.codecrafters.tableview.listeners.TableDataLongClickListener;
+import de.codecrafters.tableview.toolkit.SimpleTableDataAdapter;
+import de.codecrafters.tableview.toolkit.SimpleTableHeaderAdapter;
 
 import static android.view.View.LAYOUT_DIRECTION_LOCALE;
 import static android.view.View.TEXT_ALIGNMENT_CENTER;
 import static java.security.AccessController.getContext;
 
 
-public class MonitorizareMainActivity extends AppCompatActivity{
-   // private InOutAdapter mAdapter;
-    private TableRow row;
-    private InOutAdapter mAdapter;
-    private RecyclerView recyclerView;
-    private TextView dateOuput;
-    private EditText primitOutput;
-    private TextView cheltuitOutput;
-    private TextView idOutput;
-    private Context context;
+public class MonitorizareMainActivity extends AppCompatActivity {
+
     private List<InOut> listOfData = new ArrayList<>();
-    private TableLayout tableLayoutRecords;
-    private TextView noDataView;
+    DataBaseAccess dataBaseAccess;
+    //private TableLayout tableLayoutRecords;
+    ///private TextView noDataView;
+    private TableView<String[]> tb;
+    private TableHelper tableHelper;
+    DatePickerDialog datepicker;
     private final boolean fromExternalSource = false;
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
     private static String[] PERMISSIONS_STORAGE = {
             Manifest.permission.READ_EXTERNAL_STORAGE
     };
+    private RecyclerView.LayoutManager mLayoutManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_monitorizare_main);
-        android.support.v7.widget.Toolbar toolbar = (android.support.v7.widget.Toolbar) findViewById(R.id.toolbar);
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        if (fromExternalSource) {
+            // Check the external database file. External database must be available for the first time deployment.
+            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
+            File dbFile = new File(externalDirectory, DataBaseHelper.DATABASE_NAME);
+            if (!dbFile.exists()) {
+                return;
+            }
+            // If external database is avaliable, deploy it
+            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, externalDirectory);
+        } else {
+            // From assets
+            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
+        }
 
-        tableLayoutRecords = (TableLayout) findViewById(R.id.table_layout);
-        recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        row = new TableRow(this);
+        dataBaseAccess.open();
+        listOfData = dataBaseAccess.getAllPosts();
+        dataBaseAccess.close();
 
-        createColumns();
+        //noDataView = (TextView)findViewById(R.id.empty_notes_view);
 
         if (fromExternalSource && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
         } else {
-            loadAllData();
+            tableHelper = new TableHelper(this);
+            tb = (TableView<String[]>) findViewById(R.id.tableView);
+            tb.setColumnCount(5);
+            tb.setHeaderBackgroundColor(/*Color.parseColor("#2ecc71"))*/ContextCompat.getColor(MonitorizareMainActivity.this, R.color.colorAccent));
+
+            /*tb.(new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
+                    TableLayout.LayoutParams.WRAP_CONTENT));*/
+            //tb.setGra(Gravity.CENTER);
+
+            tb.setHeaderAdapter(new SimpleTableHeaderAdapter(this, tableHelper.getHeaders()));
+            tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
+            tb.addDataClickListener(new TableDataClickListener<String[]>() {
+                @Override
+                public void onDataClicked(int rowIndex, String[] clickedData) {
+                    showDialogEditDelete(rowIndex);
+                }
+            });
+
+
+            //loadAllData();
         }
         FloatingActionButton but = (FloatingActionButton) findViewById(R.id.buttonFloating);
-        but.setOnClickListener(new OnClickListenerCreateData());
-
-        mAdapter = new InOutAdapter(this, listOfData);
-        //TableLayoutManager mLayoutManager = new TableLayoutManager(getApplicationContext());
-        //recyclerView.setLayoutManager(mLayoutManager);
-        recyclerView.setAdapter(mAdapter);
-        recyclerView.addOnItemTouchListener(new RecyclerTouchListener(this,
-                recyclerView, new RecyclerTouchListener.ClickListener() {
-            @Override
-            public void onClick(View view, final int position) {
-            }
-
-            @Override
-            public void onLongClick(View view, int position) {
-                showDialogEditDelete(position);
-            }
-        }));
+        but.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showDialogInsertData();
+                    }
+                }
+        );
     }
 
-    /*public View.OnClickListener addButtonListener = new View.OnClickListener() {
-       Resources res =  MonitorizareMainActivity.this.getResources();
-        @Override
-        public void onClick(View v) {
-            if (v instanceof TableRow ) {
-                Log.d("tipul","row");
-            } else if (v instanceof TextView) {
-InOut inOut = new InOut();
-String textId = ((Integer) v).getId();
-String position =   res.getResourceEntryName(v.getId());
-showDialogEditDelete(position);
-
-                //Toast.makeText(MonitorizareMainActivity.this, , Toast.LENGTH_LONG).show();
-                //Log.d("tipul", "textview");
-            } else {
-                Log.d("tipul", "huipaimi");
-            }
-            TableRow tr1=(TableRow)v;
-            TextView tv1= (TextView)tr1.getChildAt(0);
-
-            Toast.makeText(getApplicationContext(),tv1.toString(),Toast.LENGTH_SHORT).show();
-        }
-    };
-    {
-
-        view.setOnClickListener(new View.OnClickListener() {
-
-            //@Override
-            public void onClick(View v) {
-
-
-
-            }
-        });
-
-   int  row_id = tableLayoutRecords.indexOfChild(row);
-        View position = tableLayoutRecords.getChildAt(row.getFocusedChild().getId());
-
-        showDialogEditDelete(position);
-    }*/
     private void showDialogEditDelete(final int position) {
 
         CharSequence colors[] = new CharSequence[]{"Editare", "Stergere"};
@@ -161,7 +158,7 @@ showDialogEditDelete(position);
             public void onClick(DialogInterface dialog, int which) {
                 if (which == 0) {
 
-                    showDataDialog(true, listOfData.get(position), position);
+                    showDialogEditData(true, listOfData.get(position), position);
                 } else {
                     deleteData(position);
                 }
@@ -169,10 +166,14 @@ showDialogEditDelete(position);
         });
         builder.show();
     }
-    private void updateData(int position) {
+
+    private void updateData(InOut inOut, int position) {
 
         final DataBaseAccess dataBaseAccess;
         InOut data = listOfData.get(position);
+        data.DATE = inOut.DATE;
+        data.INPUT = inOut.INPUT;
+        data.OUTPUT = inOut.OUTPUT;
         if (fromExternalSource) {
             // Check the external database file. External database must be available for the first time deployment.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
@@ -194,10 +195,12 @@ showDialogEditDelete(position);
         dataBaseAccess.close();
         // refreshing the list
         listOfData.set(position, data);
+        tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
         //mAdapter.notifyItemChanged(position);
 
         //toggleEmptyNotes();
     }
+
     private void deleteData(int position) {
         DataBaseAccess dataBaseAccess;
         if (fromExternalSource) {
@@ -219,12 +222,107 @@ showDialogEditDelete(position);
         dataBaseAccess.close();
         // removing the note from the list
         listOfData.remove(position);
+        tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
         //mAdapter.notifyItemRemoved(position);
 
         //toggleEmptyNotes();
     }
 
-    private void showDataDialog(final boolean shouldUpdate, final InOut inOut, final int position) {
+
+    private void showDialogInsertData() {
+        final DataBaseAccess dataBaseAccess;
+
+        LayoutInflater layoutInflater = (LayoutInflater) MonitorizareMainActivity.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        final View formView = layoutInflater.inflate(R.layout.data_dialog, null, false);
+
+
+        final EditText primitInput = (EditText) formView.findViewById(R.id.inputText);
+        final EditText cheltuitInput = (EditText) formView.findViewById(R.id.outputText);
+        //final EditText dateInput = (EditText)formView.findViewById(R.id.dateText);
+        final EditText dateInput = setDate(formView);
+        // final TextView differenceInput = (TextView)findViewById(R.id.differenceText);
+
+        //              final String dateInsert = dateInput.getText().toString();
+        if (fromExternalSource) {
+            // Check the external database file. External database must be available for the first time deployment.
+            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
+            File dbFile = new File(externalDirectory, DataBaseHelper.DATABASE_NAME);
+            if (!dbFile.exists()) {
+                return;
+            }
+            // If external database is avaliable, deploy it
+            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, externalDirectory);
+        } else {
+            // From assets
+            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
+        }
+
+
+        new AlertDialog.Builder(MonitorizareMainActivity.this)
+                .setView(formView)
+                .setCancelable(false)
+                .setPositiveButton("OK",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+
+                                final InOut inOut = new InOut();
+
+                                inOut.DATE = dateInput.getText().toString();
+                                inOut.INPUT = Integer.parseInt(primitInput.getText().toString());
+                                inOut.OUTPUT = Integer.parseInt(cheltuitInput.getText().toString());
+                                inOut.DIFFERENCE = Integer.parseInt(primitInput.getText().toString()) - Integer.parseInt(cheltuitInput.getText().toString());
+                                inOut.INPUTTOTAL = 0;
+                                inOut.OUTPUTTOTAL = 0;
+
+                                dataBaseAccess.open();
+                                boolean addSucces = dataBaseAccess.insertData(inOut);
+                                dataBaseAccess.close();
+                                if (addSucces) {
+                                    Toast.makeText(MonitorizareMainActivity.this, "Informatia sa adaugat cu succes", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(MonitorizareMainActivity.this, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
+                                }
+
+                                tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfData)));
+
+
+                            }
+                        })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.cancel();
+                            }
+                        }).show();
+    }
+
+    public EditText setDate(View dialogView) {
+        final EditText dateinput = (EditText) dialogView.findViewById(R.id.dateText);
+        dateinput.setInputType(InputType.TYPE_NULL);
+        dateinput.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                final Calendar cldr = Calendar.getInstance();
+                int day = cldr.get(Calendar.DAY_OF_MONTH);
+                int month = cldr.get(Calendar.MONTH);
+                int year = cldr.get(Calendar.YEAR);
+
+                datepicker = new DatePickerDialog(MonitorizareMainActivity.this, new DatePickerDialog.OnDateSetListener() {
+                    @Override
+                    public void onDateSet(DatePicker datePicker, int year, int month, int date) {
+                        dateinput.setText(date + "/" + month + "/" + year);
+                    }
+                }, day, month, year);
+                datepicker.show();
+            }
+        });
+        return dateinput;
+    }
+
+
+    private void showDialogEditData(final boolean shouldUpdate, final InOut inOut, final int position) {
         LayoutInflater layoutInflaterAndroid = LayoutInflater.from(getApplicationContext());
         View view = layoutInflaterAndroid.inflate(R.layout.data_dialog, null);
 
@@ -246,13 +344,16 @@ showDialogEditDelete(position);
             dataBaseAccess = DataBaseAccess.getInstance(this, null);
         }
         // deleting the note from db
+        //final EditText primitInput = (EditText) formView.findViewById(R.id.inputText);
+        //final EditText cheltuitInput = (EditText) formView.findViewById(R.id.outputText);
+        //final EditText dateInput = (EditText)formView.findViewById(R.id.dateText);
+        //final EditText dateInput = setDate(formView);
 
-
-        final EditText dateInput = view.findViewById(R.id.dateText);
+        final EditText dateInput =  setDate(view);
         final EditText input = view.findViewById(R.id.inputText);
         final EditText output = view.findViewById(R.id.outputText);
 
-       // dialogTitle.setText(getString(R.string.));
+        // dialogTitle.setText(getString(R.string.));
 
         if (shouldUpdate && inOut != null) {
             dateInput.setText(String.valueOf(inOut.DATE));
@@ -261,7 +362,8 @@ showDialogEditDelete(position);
         }
         alertDialogBuilderUserInput
                 .setCancelable(false)
-                .setTitle("Editare")
+                //.setTitle("Editare")
+                .setView(view)
                 .setPositiveButton(shouldUpdate ? "update" : "save", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialogBox, int id) {
 
@@ -287,91 +389,32 @@ showDialogEditDelete(position);
                 } else if (TextUtils.isEmpty(input.getText().toString())) {
                     Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
                     return;
-                } else if (TextUtils.isEmpty(output.getText().toString()))
-                {
+                } else if (TextUtils.isEmpty(output.getText().toString())) {
                     Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati cheltuit!", Toast.LENGTH_SHORT).show();
                     return;
-                }
-                else {
+                } else {
                     alertDialog.dismiss();
                 }
 
                 // check if user updating note
                 if (shouldUpdate && inOut != null) {
                     // update note by it's id
-                    updateData(position);
+                    inOut.DATE = dateInput.getText().toString();
+                    inOut.INPUT = Integer.parseInt(input.getText().toString());
+                    inOut.OUTPUT = Integer.parseInt(output.getText().toString());
+
+
+                    updateData(inOut,position);
                 } else {
                     // create new note
-                   dataBaseAccess.open();
-                   dataBaseAccess.insertData(inOut);
-                   dataBaseAccess.close();
+                    dataBaseAccess.open();
+                    dataBaseAccess.insertData(inOut);
+                    dataBaseAccess.close();
 
                 }
             }
         });
     }
-    public void createColumns() {
-        TableRow rowHeader = new TableRow(this);
-        rowHeader.setBackgroundColor(ContextCompat.getColor(getApplicationContext(), R.color.colorAccent));
-        rowHeader.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
-                TableLayout.LayoutParams.WRAP_CONTENT));
-        rowHeader.setGravity(Gravity.CENTER);
-
-        String[] headerText = {" Nr.crt ", " Data ", " Primire ", " Cheltuire ", " Diferenta "};
-
-        for (String c : headerText) {
-            TextView tv = new TextView(this);
-
-            tv.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT,
-                    TableRow.LayoutParams.WRAP_CONTENT));
-            tv.setGravity(Gravity.CENTER);
-            tv.setTextSize(18);
-            tv.setPadding(5, 5, 5, 5);
-            tv.setText(c);
-            rowHeader.addView(tv);
-        }
-        tableLayoutRecords.addView(rowHeader);
-
-    }
-
-    public void loadInsertedRow() {
-        DataBaseAccess dataBaseAccess;
-        if (fromExternalSource) {
-            // Check the external database file. External database must be available for the first time deployment.
-            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DataBaseHelper.DATABASE_NAME);
-            if (!dbFile.exists()) {
-                return;
-            }
-            // If external database is avaliable, deploy it
-            dataBaseAccess = DataBaseAccess.getInstance(this, externalDirectory);
-        } else {
-            // From assets
-            dataBaseAccess = DataBaseAccess.getInstance(this, null);
-        }
-
-        dataBaseAccess.open();
-        InOut inOut = dataBaseAccess.getInsertedRow();
-        dataBaseAccess.close();
-
-        TableRow tableRow = new TableRow(this);
-
-        tableRow.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.WRAP_CONTENT, TableLayout.LayoutParams.WRAP_CONTENT));
-        String[] colText = {inOut.ID + "", inOut.DATE, String.valueOf(inOut.INPUT), String.valueOf(inOut.OUTPUT), String.valueOf(inOut.DIFFERENCE)};
-        for (String text : colText) {
-            TextView tv = new TextView(this);
-           // tv.setOnClickListener(addButtonListener);
-            tv.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-            tv.setGravity(Gravity.CENTER);
-            tv.setTextSize(16);
-            tv.setText(text);
-            tableRow.addView(tv);
-        }
-        tableLayoutRecords.addView(tableRow);
-
-    }
-
-
 
     public void loadAllData() {
         DataBaseAccess dataBaseAccess;
@@ -403,11 +446,11 @@ showDialogEditDelete(position);
 
         if (listOfData.size() > 0) {
             no_data_message.setVisibility(View.GONE);
-            tableLayoutRecords.removeView(no_data_message);
+            //tableLayoutRecords.removeView(no_data_message);
 
             for (InOut inOut : listOfData) {
 
-                TableRow tableRow = new  TableRow(this);
+                TableRow tableRow = new TableRow(this);
                 tableRow.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.WRAP_CONTENT, TableLayout.LayoutParams.WRAP_CONTENT));
                 String[] colText = {inOut.ID + "", inOut.DATE, String.valueOf(inOut.INPUT), String.valueOf(inOut.OUTPUT), String.valueOf(inOut.DIFFERENCE)};
                 for (String text : colText) {
@@ -419,11 +462,11 @@ showDialogEditDelete(position);
                     tv.setText(text);
                     tableRow.addView(tv);
                 }
-                tableLayoutRecords.addView(tableRow);
+                //tableLayoutRecords.addView(tableRow);
             }
         } else {
             no_data_message.setVisibility(View.VISIBLE);
-            tableLayoutRecords.addView(no_data_message);
+            // tableLayoutRecords.addView(no_data_message);
             //  Toast.makeText(context, "NU SUNT DATE", Toast.LENGTH_SHORT).show();
 
         }

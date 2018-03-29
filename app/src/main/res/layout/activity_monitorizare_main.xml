@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.design.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical">
+    android:fitsSystemWindows="true">
 
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
@@ -18,23 +20,8 @@
             app:popupTheme="@style/AppTheme.PopupOverlay" />
     </android.support.design.widget.AppBarLayout>
 
+ <include layout ="@layout/content_main"/>
 
-    <ScrollView
-        android:id="@+id/scrollViewRecords"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        >
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/recycler_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-        </android.support.v7.widget.RecyclerView>
-</ScrollView>
-
-    <android.support.design.widget.CoordinatorLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="1">
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/buttonFloating"
         android:layout_width="wrap_content"
@@ -43,8 +30,6 @@
         android:layout_alignParentBottom = "true"
         android:layout_alignParentRight= "true"
         android:layout_margin="@dimen/fab_margin"
-        android:layout_below="@id/scrollViewRecords"
-        android:src="@drawable/ic_menu_add" />
+        android:src="@drawable/ic_menu_add"
+        android:layout_alignParentEnd="true" />
 </android.support.design.widget.CoordinatorLayout>
-
-</LinearLayout>

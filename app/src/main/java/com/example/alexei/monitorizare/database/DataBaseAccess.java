@@ -116,9 +116,11 @@ public class DataBaseAccess {
 
     }
 
-    public void deleteData(InOut inOut) {
+    public boolean deleteData(InOut inOut) {
         database.delete("InOutTable", "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
         database.close();
+    if(database != null)
+    {return true;}
     }
 
     public boolean insertData(InOut inOut) {

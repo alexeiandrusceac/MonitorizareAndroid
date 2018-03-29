@@ -6,4 +6,7 @@
     <dimen name="margin_top_no_notes">120dp</dimen>
     <dimen name ="dialog_dim">15dp</dimen>
     <dimen name ="dimen_10">10dp</dimen>
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
 </resources>

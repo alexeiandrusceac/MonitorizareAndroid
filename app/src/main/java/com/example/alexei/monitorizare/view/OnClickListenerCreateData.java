@@ -21,6 +21,9 @@ import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 import java.io.File;
 import java.util.Calendar;
 
+import de.codecrafters.tableview.TableView;
+import de.codecrafters.tableview.toolkit.SimpleTableDataAdapter;
+
 /**
  * Created by Alexei on 3/24/2018.
  */
@@ -38,6 +41,8 @@ public class OnClickListenerCreateData implements View.OnClickListener {
         context = view.getRootView().getContext();
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         final View formView = layoutInflater.inflate(R.layout.data_dialog, null, false);
+        final TableView<String[]> tb;
+        final TableHelper tableHelper;
 
         final EditText primitInput = (EditText) formView.findViewById(R.id.inputText);
         final EditText cheltuitInput = (EditText) formView.findViewById(R.id.outputText);
@@ -85,7 +90,10 @@ public class OnClickListenerCreateData implements View.OnClickListener {
                                     Toast.makeText(context, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
                                 }
                                 ////Verifica aici
-                                ((MonitorizareMainActivity) context).loadInsertedRow();
+                                //tableHelper = new TableHelper(context);
+
+                               // tb.setDataAdapter(new SimpleTableDataAdapter(context,tableHelper.getData()));
+                                /// / ((TableHelper) context).loadAllData();
                             }
                         })
                 .setNegativeButton("Cancel",
