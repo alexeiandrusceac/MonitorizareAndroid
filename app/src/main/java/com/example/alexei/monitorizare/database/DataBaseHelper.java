@@ -13,9 +13,11 @@ import android.provider.ContactsContract;
 import android.provider.Telephony;
 import android.support.v4.app.INotificationSideChannel;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 
+import java.io.FileInputStream;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +28,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import javax.xml.validation.Schema;
+
+import com.example.alexei.monitorizare.view.MonitorizareMainActivity;
 import com.example.mylibrary.ExternalSQLiteHelper;
 /**
  * Created by alexei.andrusceac on 19.03.2018.
@@ -34,7 +38,7 @@ import com.example.mylibrary.ExternalSQLiteHelper;
 public class DataBaseHelper extends ExternalSQLiteHelper {
     public  static  String DATABASE_NAME="MonitorizareDB.db";
     private static final int SCHEMA = 1;
-
+    private Context context;
     public DataBaseHelper (Context context)
     {
         super(context,DATABASE_NAME,null,SCHEMA);
@@ -43,164 +47,57 @@ public class DataBaseHelper extends ExternalSQLiteHelper {
     {
         super(context,DATABASE_NAME,sourceDirectory,null);
     }
-}
-/*
-private static String DB_PATH = "/data/data/com.example.alexei.monitorizare/databases/";
-    private  static  String DATABASE_NAME="MonitorizareDB.db";
-    private static final int SCHEMA = 1;
-    private SQLiteDatabase myDataBase;
-    private final Context myContext;
-    /*private static final String INOUTTABLE = "InOutTable";
 
-    private static final String ID = "input_ID";
-
-    private static final String DATE = "Date";
-    private static final String INPUT = "Input";
-    private static final String OUTPUT = "Output";
-    private static final String DIFFERENCE = "Difference";
-    private static final String INPUTTOTAL = "InputTotal";
-    private static final String OUTPUTTOTAL = "OutputTotal";
-
-    public static synchronized DataBaseHelper getsInstance(Context context)
+    public void backupDataBase(String outFileName)
     {
-        if(sInstance == null)
+        final String inFileName = context.getDatabasePath(DATABASE_NAME).toString();
+        try
         {
-            sInstance = new DataBaseHelper(context.getApplicationContext());
+            File dbfile = new File(inFileName);
+            FileInputStream fileInputStream = new FileInputStream(dbfile);
+            OutputStream outputStream = new FileOutputStream(outFileName);
+            byte[] buffer = new byte[1024];
+            int length;
+            while((length = fileInputStream.read(buffer)) > 0)
+                outputStream.write(buffer,0,length);
+            outputStream.flush();
+            outputStream.close();
+            fileInputStream.close();
+            Toast.makeText(context, " Copierea bazei de date sa executat cu succes",Toast.LENGTH_SHORT).show();
+
         }
-        return sInstance;
-    }
-
-   public DataBaseHelper(Context context) {
-        super(context, DATABASE_NAME, null, SCHEMA);
-   this.myContext = context;
-   }
-
-   public void createDataBase()throws IOException{
-       boolean dbExist = checkDataBase();
-       if(dbExist)
-       {
-
-       }
-       else
-       {
-           this.getReadableDatabase();
-           try
-           {
-               copyDataBase();
-
-           }
-           catch(IOException ex)
-           {
-               throw  new Error("Eroare in copierea bazei de date");
-           }
-       }
-   }
-
-   private boolean checkDataBase()
-   {
-       SQLiteDatabase checkDB = null;
-       try
-       {
-           String myPath= DB_PATH + DATABASE_NAME;
-           checkDB = SQLiteDatabase.openDatabase(myPath,null,SQLiteDatabase.OPEN_READONLY);
-
-       }
-       catch(SQLException ex)
-       {
-           ex.getMessage();
-       }
-       if(checkDB != null)
-       {
-           checkDB.close();
-       }
-       return checkDB !=null ?true:false;
-   }
-   private void copyDataBase()throws IOException
-   {
-       InputStream myInput = myContext.getAssets().open(DATABASE_NAME);
-
-       // Path to the just created empty db
-       String outFileName = DB_PATH + DATABASE_NAME;
-
-       //Open the empty db as the output stream
-       OutputStream myOutput = new FileOutputStream(outFileName);
-
-       //transfer bytes from the inputfile to the outputfile
-       byte[] buffer = new byte[1024];
-       int length;
-       while ((length = myInput.read(buffer))>0){
-           myOutput.write(buffer, 0, length);
-       }
-
-       //Close the streams
-       myOutput.flush();
-       myOutput.close();
-       myInput.close();
-   }
-    public void openDataBase() throws SQLException{
-
-        //Open the database
-        String myPath = DB_PATH + DATABASE_NAME;
-        myDataBase = SQLiteDatabase.openDatabase(myPath, null, SQLiteDatabase.OPEN_READONLY);
+        catch(Exception exception)
+        {
+            Toast.makeText(context, "Nu sa copiat baza de date!!!", Toast.LENGTH_SHORT).show();
+            exception.printStackTrace();
+        }
 
     }
 
-    @Override
-    public synchronized void close() {
-
-        if(myDataBase != null)
-            myDataBase.close();
-
-        super.close();
-
-    }
-
-    @Override
-    public void onCreate(SQLiteDatabase db) {
-
-    }
-
-    @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
-    }
-*/
-    // Add your public helper methods to access and get content from the database.
-    // You could return cursors by doing "return myDataBase.query(....)" so it'd be easy
-    // to you to create adapters for your views.
-
-
-/*
-    @Override
-    public void onConfigure(SQLiteDatabase db)
+    public void importDataBase(String inFileName)
     {
-     super.onConfigure(db);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            db.setForeignKeyConstraintsEnabled(true);
+        final String outFileName = context.getDatabasePath(DATABASE_NAME).toString();
+        try
+        {
+            File dbfile = new File(inFileName);
+            FileInputStream fileInputStream = new FileInputStream(dbfile);
+            OutputStream outputStream = new FileOutputStream(outFileName);
+            byte[] buffer = new byte[1024];
+            int length;
+            while((length = fileInputStream.read(buffer)) > 0)
+                outputStream.write(buffer,0,length);
+            outputStream.flush();
+            outputStream.close();
+            fileInputStream.close();
+            Toast.makeText(context, " Copierea bazei de date sa executat cu succes",Toast.LENGTH_SHORT).show();
+
         }
-    }
-
-    @Override
-    public void onCreate(SQLiteDatabase db) {
-
-        String CREATE_DATA_TABLE = "create table if not exists " + INOUTTABLE + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + DATE + " text not null, "
-                + INPUT + " int, "
-                + OUTPUT + " int, "
-                + DIFFERENCE + "text, "
-                + INPUTTOTAL + " text, "
-                + OUTPUTTOTAL + " text)";
-        db.execSQL(CREATE_DATA_TABLE);
-    }
-    @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if(oldVersion != newVersion) {
-            db.execSQL("DROP TABLE IF EXISTS " + INOUTTABLE);
-
-            // Create tables again
-            onCreate(db);
+        catch(Exception exception)
+        {
+            Toast.makeText(context, "Nu sa copiat baza de date!!!", Toast.LENGTH_SHORT).show();
+            exception.printStackTrace();
         }
+
     }
-*/
 
-
+}

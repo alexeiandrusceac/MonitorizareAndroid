@@ -5,10 +5,16 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
+import com.example.alexei.monitorizare.view.MonitorizareMainActivity;
 import com.example.mylibrary.ExternalSQLiteHelper;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,7 +90,6 @@ public class DataBaseAccess {
     public List<InOut> getAllPosts() {
         List<InOut> list = new ArrayList<>();
 
-
         Cursor cursor = database.rawQuery("SELECT * FROM InOutTable", null);
         if (cursor.moveToFirst()) {
             do {
@@ -99,12 +104,12 @@ public class DataBaseAccess {
                 list.add(newdata);
             } while (cursor.moveToNext());
         }
-
+        database.close();
         cursor.close();
         return list;
     }
 
-    public int updateData(InOut inOut) {
+    public boolean updateData(InOut inOut) {
         ContentValues values = new ContentValues();
         values.put("Date", inOut.DATE);
         values.put("Input", inOut.INPUT);
@@ -112,16 +117,24 @@ public class DataBaseAccess {
         values.put("Difference", inOut.DIFFERENCE);
         /*values.put(INPUTTOTAL, inOut.INPUTTOTAL);
         values.put(OUTPUTTOTAL, inOut.OUTPUTTOTAL);*/
-        return database.update("InOutTable", values, "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
-
+         database.update("InOutTable", values, "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
+         database.close();
+        if(database == null)
+        {return false;}
+        else
+        {return true;}
     }
 
     public boolean deleteData(InOut inOut) {
         database.delete("InOutTable", "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
         database.close();
-    if(database != null)
-    {return true;}
+        if (database != null) {
+            return true;
+        } else {
+            return false;
+        }
     }
+
 
     public boolean insertData(InOut inOut) {
         ContentValues values = new ContentValues();
@@ -133,10 +146,7 @@ public class DataBaseAccess {
         /*values.put(INPUTTOTAL, inOut.INPUTTOTAL);
         values.put(OUTPUTTOTAL, inOut.OUTPUTTOTAL);*/
 
-
         database.insert("InOutTable", null, values);
-
-
         database.close();
         if (database == null) {
             return false;
@@ -145,23 +155,25 @@ public class DataBaseAccess {
         }
     }
 
-    public InOut getInsertedRow() {
-        InOut newdata = new InOut();
-
-        Cursor cursor = database.rawQuery("SELECT  *  FROM InOutTable ORDER BY input_ID DESC LIMIT 1;", null);
-        if (cursor.moveToFirst()) {
-
-            newdata.ID = cursor.getInt(0);
-            newdata.DATE = cursor.getString(1);
-            newdata.INPUT = cursor.getInt(2);
-            newdata.OUTPUT = cursor.getInt(3);
-            newdata.DIFFERENCE = cursor.getInt(4);
-            //newdata.INPUTTOTAL = cursor.getInt(5);
-            //newdata.OUTPUTTOTAL = cursor.getInt(6);
+    /*public void backupDataBase(String outFileName)
+    {
+        final String inFileName = database.getPath().toString();
+        try
+        {
+            File dbfile = new File(inFileName);
+            FileInputStream fileInputStream = new FileInputStream(dbfile);
+            OutputStream outputStream = new FileOutputStream(outFileName);
+            byte[] buffer = new byte[1024];
+            int length;
+            while((length = fileInputStream.read(buffer)) > 0)
+                outputStream.write(buffer,0,length);
+            outputStream.flush();
+            outputStream.close();
+            fileInputStream.close();
+            Toast.makeText(MonitorizareMainActivity.this, " Copierea bazei de date sa executat cu succes",Toast.LENGTH_SHORT).show();
 
         }
-        cursor.close();
-        return newdata;
 
-    }
+    }*/
+
 }

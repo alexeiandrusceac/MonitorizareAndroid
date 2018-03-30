@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: de.codecrafters.tableview:tableview-2.2.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-1/files-1.1/tableview-2.2.0.aar/b05fcbd29d34ffe1c83fe6cccc1ff689/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-1/files-1.1/tableview-2.2.0.aar/b05fcbd29d34ffe1c83fe6cccc1ff689/res" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/de.codecrafters.tableview/tableview/2.2.0/2dbda8165f505f3b6f76f2fa4f7c8851e03d62f6/tableview-2.2.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

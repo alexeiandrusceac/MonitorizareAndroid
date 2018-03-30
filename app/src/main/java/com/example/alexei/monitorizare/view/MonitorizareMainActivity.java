@@ -3,12 +3,15 @@ package com.example.alexei.monitorizare.view;
 //import android.content.Intent;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.database.sqlite.SQLiteDatabase;
@@ -16,10 +19,12 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -54,6 +59,9 @@ import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 import org.w3c.dom.Text;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -66,15 +74,38 @@ import de.codecrafters.tableview.toolkit.SimpleTableHeaderAdapter;
 
 import static android.view.View.LAYOUT_DIRECTION_LOCALE;
 import static android.view.View.TEXT_ALIGNMENT_CENTER;
+import static com.example.alexei.monitorizare.database.DataBaseHelper.DATABASE_NAME;
 import static java.security.AccessController.getContext;
 
+// Google Play Services
 
-public class MonitorizareMainActivity extends AppCompatActivity {
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.drive.Drive;
+import com.google.android.gms.drive.DriveApi;
+import com.google.android.gms.drive.DriveContents;
+import com.google.android.gms.drive.DriveFile;
+import com.google.android.gms.drive.DriveId;
+import com.google.android.gms.drive.MetadataChangeSet;
+import com.google.android.gms.drive.OpenFileActivityBuilder;
+
+public class MonitorizareMainActivity extends AppCompatActivity implements  GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+
+    private GoogleApiClient mGoogleApiClient;
+    private static final String TAG = "Google Drive Activity";
+    private  static final int REQUEST_CODE_OPENER = 1;
+    private static final int REQUEST_CODE_CREATOR = 2;
+    private static final int REQUEST_CODE_RESOLUTION = 3;
+
+    private boolean backupOrRestore = true;
 
     private List<InOut> listOfData = new ArrayList<>();
     DataBaseAccess dataBaseAccess;
     //private TableLayout tableLayoutRecords;
-    ///private TextView noDataView;
+    private TextView noDataView;
     private TableView<String[]> tb;
     private TableHelper tableHelper;
     DatePickerDialog datepicker;
@@ -89,13 +120,13 @@ public class MonitorizareMainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_monitorizare_main);
-
+        noDataView = (TextView) findViewById(R.id.noDataView);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (fromExternalSource) {
             // Check the external database file. External database must be available for the first time deployment.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DataBaseHelper.DATABASE_NAME);
+            File dbFile = new File(externalDirectory, DATABASE_NAME);
             if (!dbFile.exists()) {
                 return;
             }
@@ -110,8 +141,6 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         listOfData = dataBaseAccess.getAllPosts();
         dataBaseAccess.close();
 
-        //noDataView = (TextView)findViewById(R.id.empty_notes_view);
-
         if (fromExternalSource && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
         } else {
@@ -119,11 +148,6 @@ public class MonitorizareMainActivity extends AppCompatActivity {
             tb = (TableView<String[]>) findViewById(R.id.tableView);
             tb.setColumnCount(5);
             tb.setHeaderBackgroundColor(/*Color.parseColor("#2ecc71"))*/ContextCompat.getColor(MonitorizareMainActivity.this, R.color.colorAccent));
-
-            /*tb.(new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
-                    TableLayout.LayoutParams.WRAP_CONTENT));*/
-            //tb.setGra(Gravity.CENTER);
-
             tb.setHeaderAdapter(new SimpleTableHeaderAdapter(this, tableHelper.getHeaders()));
             tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
             tb.addDataClickListener(new TableDataClickListener<String[]>() {
@@ -132,9 +156,6 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                     showDialogEditDelete(rowIndex);
                 }
             });
-
-
-            //loadAllData();
         }
         FloatingActionButton but = (FloatingActionButton) findViewById(R.id.buttonFloating);
         but.setOnClickListener(
@@ -145,6 +166,178 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                     }
                 }
         );
+        showEmptyDataTextView();
+        connectToGoogleAPIClient();
+    }
+
+    public void connectToGoogleAPIClient()
+    {
+        backupOrRestore = true;
+        if(mGoogleApiClient != null)
+        {
+            mGoogleApiClient.disconnect();
+        }
+        mGoogleApiClient = gApiClient(mGoogleApiClient);
+        mGoogleApiClient.connect();
+    }
+    public void saveToDrive()
+    {
+        //database path on the device
+        final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
+
+        Drive.DriveApi.newDriveContents(mGoogleApiClient).setResultCallback(new ResultCallback<DriveApi.DriveContentsResult>() {
+
+            @Override
+            public void onResult(@NonNull DriveApi.DriveContentsResult driveContentsResult) {
+
+                if (!driveContentsResult.getStatus().isSuccess()) {
+                    Log.i(TAG, "Nu sa executat o copie a bazei de date in Drive");
+                    Toast.makeText(MonitorizareMainActivity.this, "Eroare la incarcarea in Google Drive, Mai incearca", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Log.i(TAG, "Backup to drive started.");
+
+                try {
+
+                    File dbFile = new File(inFileName);
+                    FileInputStream fis = new FileInputStream(dbFile);
+                    OutputStream outputStream = driveContentsResult.getDriveContents().getOutputStream();
+
+                    // Transfer bytes from the inputfile to the outputfile
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = fis.read(buffer)) > 0) {
+                        outputStream.write(buffer, 0, length);
+                    }
+
+                    //drive file metadata
+                    MetadataChangeSet metadataChangeSet = new MetadataChangeSet.Builder()
+                            .setTitle("MonitorizareDB.db")
+                            .setMimeType("application/db")
+                            .build();
+
+                    // Create an intent for the file chooser, and start it.
+                    IntentSender intentSender = Drive.DriveApi
+                            .newCreateFileActivityBuilder()
+                            .setInitialMetadata(metadataChangeSet)
+                            .setInitialDriveContents(driveContentsResult.getDriveContents())
+                            .build(mGoogleApiClient);
+
+                    startIntentSenderForResult(intentSender, REQUEST_CODE_CREATOR, null, 0, 0, 0);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+    private void importFromDrive(DriveFile dbFile) {
+
+        //database path on the device
+        final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
+
+        dbFile.open(mGoogleApiClient, DriveFile.MODE_READ_ONLY, null).setResultCallback(new ResultCallback<DriveApi.DriveContentsResult>() {
+
+            @Override
+            public void onResult(@NonNull DriveApi.DriveContentsResult driveContentsResult) {
+
+                if (!driveContentsResult.getStatus().isSuccess()) {
+                    Log.i(TAG, "Failed to open Drive backup.");
+                    Toast.makeText(MonitorizareMainActivity.this, "Error on loading from Google Drive. Retry", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Log.i(TAG, "Backup to drive started.");
+
+                // DriveContents object contains pointers to the actual byte stream
+                DriveContents contents = driveContentsResult.getDriveContents();
+
+                try {
+
+                    ParcelFileDescriptor parcelFileDescriptor = contents.getParcelFileDescriptor();
+                    FileInputStream fileInputStream = new FileInputStream(parcelFileDescriptor.getFileDescriptor());
+
+                    // Open the empty db as the output stream
+                    OutputStream outputStream = new FileOutputStream(inFileName);
+
+                    // Transfer bytes from the inputfile to the outputfile
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = fileInputStream.read(buffer)) > 0) {
+                        outputStream.write(buffer, 0, length);
+                    }
+
+                    // Close the streams
+                    outputStream.flush();
+                    outputStream.close();
+                    fileInputStream.close();
+
+                    Toast.makeText(getApplicationContext(), "Import Completed", Toast.LENGTH_SHORT).show();
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Toast.makeText(getApplicationContext(), "Error on loading", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+    public GoogleApiClient gApiClient(GoogleApiClient googleApiClient) {
+        if(googleApiClient ==null)
+        {
+            googleApiClient = new GoogleApiClient.Builder(this)
+                    .addApi(Drive.API)
+                    .addScope(Drive.SCOPE_FILE)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .build();
+        }
+        return googleApiClient;
+    }
+    public void onConnectionFailed(ConnectionResult result) {
+
+        Log.i(TAG, "GoogleApiClient connection failed: " + result.toString());
+        if (!result.hasResolution()) {
+            // show the localized error dialog.
+            GoogleApiAvailability.getInstance().getErrorDialog(this, result.getErrorCode(), 0).show();
+            return;
+        }
+
+        try {
+            result.startResolutionForResult(this, REQUEST_CODE_RESOLUTION);
+        } catch (IntentSender.SendIntentException e) {
+            Log.e(TAG, "Exception while starting resolution activity", e);
+        }
+    }
+
+    @Override
+    public void onConnected(Bundle connectionHint) {
+        Log.i(TAG, "API client connected.");
+
+        //when the client is connected i have two possibility: backup (bckORrst -> true) or restore (bckORrst -> false)
+        if (backupOrRestore)
+            saveToDrive();
+        else {
+            IntentSender intentSender = Drive.DriveApi
+                    .newOpenFileActivityBuilder()
+                    .setMimeType(new String[]{"application/db"})
+                    .build(mGoogleApiClient);
+            try {
+                startIntentSenderForResult(intentSender, REQUEST_CODE_OPENER, null, 0, 0, 0);
+                Log.i(TAG, "Open File Intent send");
+            } catch (IntentSender.SendIntentException e) {
+                Log.w(TAG, "Unable to send Open File Intent", e);
+            }
+        }
+    }
+
+    private void showEmptyDataTextView() {
+
+        if (listOfData.size() > 0) {
+            noDataView.setVisibility(View.GONE);
+
+        } else {
+            noDataView.setVisibility(View.VISIBLE);
+        }
     }
 
     private void showDialogEditDelete(final int position) {
@@ -167,6 +360,42 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         builder.show();
     }
 
+    @Override
+    protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
+        switch (requestCode) {
+
+            case REQUEST_CODE_CREATOR:
+                // Called after a file is saved to Drive.
+                if (resultCode == RESULT_OK) {
+                    Log.i(TAG, "Backup successfully saved.");
+                    Toast.makeText(this, "Backup successufly loaded!", Toast.LENGTH_SHORT).show();
+                }
+                break;
+
+            case REQUEST_CODE_OPENER:
+                if (resultCode == RESULT_OK) {
+                    DriveId driveId = data.getParcelableExtra(
+                            OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID);
+                    //Toast.makeText(this, driveId.toString(), Toast.LENGTH_SHORT).show();
+                    DriveFile file = driveId.asDriveFile();
+                    importFromDrive(file);
+                }
+        }
+    }
+
+    @Override
+    public void onConnectionSuspended(int cause) {
+        Log.i(TAG, "GoogleApiClient connection suspended");
+    }
+
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (mGoogleApiClient != null)
+            mGoogleApiClient.disconnect();
+    }
+
     private void updateData(InOut inOut, int position) {
 
         final DataBaseAccess dataBaseAccess;
@@ -174,10 +403,11 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         data.DATE = inOut.DATE;
         data.INPUT = inOut.INPUT;
         data.OUTPUT = inOut.OUTPUT;
+        data.DIFFERENCE = inOut.INPUT - inOut.OUTPUT;
         if (fromExternalSource) {
             // Check the external database file. External database must be available for the first time deployment.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DataBaseHelper.DATABASE_NAME);
+            File dbFile = new File(externalDirectory, DATABASE_NAME);
             if (!dbFile.exists()) {
                 return;
             }
@@ -191,14 +421,20 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         dataBaseAccess.open();
 
         // updating note in db
-        dataBaseAccess.updateData(data);
+        boolean updateSuccess = dataBaseAccess.updateData(data);
         dataBaseAccess.close();
+        if (updateSuccess) {
+            Toast.makeText(MonitorizareMainActivity.this, "Informatia sa actualizat cu succes", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(MonitorizareMainActivity.this, "Nu sa actualizat informatia", Toast.LENGTH_SHORT).show();
+
+        }
         // refreshing the list
         listOfData.set(position, data);
         tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
         //mAdapter.notifyItemChanged(position);
-
-        //toggleEmptyNotes();
+        tb.refreshDrawableState();
+        showEmptyDataTextView();
     }
 
     private void deleteData(int position) {
@@ -206,7 +442,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         if (fromExternalSource) {
             // Check the external database file. External database must be available for the first time deployment.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DataBaseHelper.DATABASE_NAME);
+            File dbFile = new File(externalDirectory, DATABASE_NAME);
             if (!dbFile.exists()) {
                 return;
             }
@@ -218,14 +454,19 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         }
         // deleting the note from db
         dataBaseAccess.open();
-        dataBaseAccess.deleteData(listOfData.get(position));
+        boolean deleteSucces = dataBaseAccess.deleteData(listOfData.get(position));
         dataBaseAccess.close();
-        // removing the note from the list
+        if (deleteSucces) {
+            Toast.makeText(MonitorizareMainActivity.this, "Informatia sa sters cu succes", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(MonitorizareMainActivity.this, "Nu sa sters informatia", Toast.LENGTH_SHORT).show();
+        }
+
         listOfData.remove(position);
         tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
-        //mAdapter.notifyItemRemoved(position);
+        tb.refreshDrawableState();
 
-        //toggleEmptyNotes();
+        showEmptyDataTextView();
     }
 
 
@@ -246,7 +487,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         if (fromExternalSource) {
             // Check the external database file. External database must be available for the first time deployment.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DataBaseHelper.DATABASE_NAME);
+            File dbFile = new File(externalDirectory, DATABASE_NAME);
             if (!dbFile.exists()) {
                 return;
             }
@@ -261,7 +502,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         new AlertDialog.Builder(MonitorizareMainActivity.this)
                 .setView(formView)
                 .setCancelable(false)
-                .setPositiveButton("OK",
+                .setPositiveButton("Adauga",
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
@@ -283,19 +524,23 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                                 } else {
                                     Toast.makeText(MonitorizareMainActivity.this, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
                                 }
-
+                                dataBaseAccess.open();
+                                listOfData = dataBaseAccess.getAllPosts();
+                                dataBaseAccess.close();
                                 tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfData)));
 
-
+                                showEmptyDataTextView();
                             }
                         })
-                .setNegativeButton("Cancel",
+                .setNegativeButton("Anuleaza",
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 dialog.cancel();
                             }
                         }).show();
+
+
     }
 
     public EditText setDate(View dialogView) {
@@ -314,7 +559,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                     public void onDateSet(DatePicker datePicker, int year, int month, int date) {
                         dateinput.setText(date + "/" + month + "/" + year);
                     }
-                }, day, month, year);
+                }, year, month, day);
                 datepicker.show();
             }
         });
@@ -333,7 +578,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         if (fromExternalSource) {
             // Check the external database file. External database must be available for the first time deployment.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DataBaseHelper.DATABASE_NAME);
+            File dbFile = new File(externalDirectory, DATABASE_NAME);
             if (!dbFile.exists()) {
                 return;
             }
@@ -343,33 +588,30 @@ public class MonitorizareMainActivity extends AppCompatActivity {
             // From assets
             dataBaseAccess = DataBaseAccess.getInstance(this, null);
         }
-        // deleting the note from db
-        //final EditText primitInput = (EditText) formView.findViewById(R.id.inputText);
-        //final EditText cheltuitInput = (EditText) formView.findViewById(R.id.outputText);
-        //final EditText dateInput = (EditText)formView.findViewById(R.id.dateText);
-        //final EditText dateInput = setDate(formView);
 
-        final EditText dateInput =  setDate(view);
+        final EditText dateInput = setDate(view);
         final EditText input = view.findViewById(R.id.inputText);
         final EditText output = view.findViewById(R.id.outputText);
-
-        // dialogTitle.setText(getString(R.string.));
 
         if (shouldUpdate && inOut != null) {
             dateInput.setText(String.valueOf(inOut.DATE));
             input.setText(String.valueOf(inOut.INPUT));
             output.setText(String.valueOf(inOut.OUTPUT));
+            dateInput.setTextColor(Color.BLACK);
+            input.setTextColor(Color.BLACK);
+            output.setTextColor(Color.BLACK);
+            input.setHintTextColor(Color.RED);
+            output.setHintTextColor(Color.RED);
         }
         alertDialogBuilderUserInput
                 .setCancelable(false)
-                //.setTitle("Editare")
                 .setView(view)
-                .setPositiveButton(shouldUpdate ? "update" : "save", new DialogInterface.OnClickListener() {
+                .setPositiveButton(shouldUpdate ? "Actualizeaza" : "Salveaza", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialogBox, int id) {
 
                     }
                 })
-                .setNegativeButton("cancel",
+                .setNegativeButton("Anuleaza",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialogBox, int id) {
                                 dialogBox.cancel();
@@ -383,10 +625,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Show toast message when no text is entered
-                if (TextUtils.isEmpty(dateInput.getText().toString())) {
-                    Toast.makeText(MonitorizareMainActivity.this, "Introduceti data!", Toast.LENGTH_SHORT).show();
-                    return;
-                } else if (TextUtils.isEmpty(input.getText().toString())) {
+                if (TextUtils.isEmpty(input.getText().toString())) {
                     Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
                     return;
                 } else if (TextUtils.isEmpty(output.getText().toString())) {
@@ -404,7 +643,7 @@ public class MonitorizareMainActivity extends AppCompatActivity {
                     inOut.OUTPUT = Integer.parseInt(output.getText().toString());
 
 
-                    updateData(inOut,position);
+                    updateData(inOut, position);
                 } else {
                     // create new note
                     dataBaseAccess.open();
@@ -416,74 +655,20 @@ public class MonitorizareMainActivity extends AppCompatActivity {
         });
     }
 
-    public void loadAllData() {
-        DataBaseAccess dataBaseAccess;
 
-        TextView no_data_message = new TextView(this);
-        no_data_message.setPadding(8, 8, 8, 8);
-        no_data_message.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
-        no_data_message.setGravity(Gravity.CENTER);
-        no_data_message.setText("Nu sunt date");
-        no_data_message.setTextSize(20);
+    /*public static void verifyStoragePermissions(Activity activity) {
+        // Check if we have read or write permission
+        int writePermission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        int readPermission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE);
 
-        if (fromExternalSource) {
-            // Check the external database file. External database must be available for the first time deployment.
-            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DataBaseHelper.DATABASE_NAME);
-            if (!dbFile.exists()) {
-                return;
-            }
-            // If external database is avaliable, deploy it
-            dataBaseAccess = DataBaseAccess.getInstance(this, externalDirectory);
-        } else {
-            // From assets
-            dataBaseAccess = DataBaseAccess.getInstance(this, null);
+        if (writePermission != PackageManager.PERMISSION_GRANTED || readPermission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
         }
-
-        dataBaseAccess.open();
-        listOfData = dataBaseAccess.getAllPosts();
-        dataBaseAccess.close();
-
-        if (listOfData.size() > 0) {
-            no_data_message.setVisibility(View.GONE);
-            //tableLayoutRecords.removeView(no_data_message);
-
-            for (InOut inOut : listOfData) {
-
-                TableRow tableRow = new TableRow(this);
-                tableRow.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.WRAP_CONTENT, TableLayout.LayoutParams.WRAP_CONTENT));
-                String[] colText = {inOut.ID + "", inOut.DATE, String.valueOf(inOut.INPUT), String.valueOf(inOut.OUTPUT), String.valueOf(inOut.DIFFERENCE)};
-                for (String text : colText) {
-                    TextView tv = new TextView(this);
-                    //tv.setOnClickListener(addButtonListener);
-                    tv.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                    tv.setGravity(Gravity.CENTER);
-                    tv.setTextSize(16);
-                    tv.setText(text);
-                    tableRow.addView(tv);
-                }
-                //tableLayoutRecords.addView(tableRow);
-            }
-        } else {
-            no_data_message.setVisibility(View.VISIBLE);
-            // tableLayoutRecords.addView(no_data_message);
-            //  Toast.makeText(context, "NU SUNT DATE", Toast.LENGTH_SHORT).show();
-
-        }
-
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_EXTERNAL_STORAGE) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission is granted
-                loadAllData();
-            } else {
-                Toast.makeText(this, "Until you grant the permission, we cannot display the quotes", Toast.LENGTH_SHORT).show();
-            }
-        }
-
-    }
+    }*/
 
 }
