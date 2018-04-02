@@ -8,14 +8,19 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -39,6 +44,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.animation.GridLayoutAnimationController;
 import android.widget.Button;
 import android.widget.DatePicker;
@@ -68,21 +74,19 @@ import java.util.List;
 
 import de.codecrafters.tableview.TableView;
 import de.codecrafters.tableview.listeners.TableDataClickListener;
-import de.codecrafters.tableview.listeners.TableDataLongClickListener;
+
 import de.codecrafters.tableview.toolkit.SimpleTableDataAdapter;
 import de.codecrafters.tableview.toolkit.SimpleTableHeaderAdapter;
 
-import static android.view.View.LAYOUT_DIRECTION_LOCALE;
-import static android.view.View.TEXT_ALIGNMENT_CENTER;
+
 import static com.example.alexei.monitorizare.database.DataBaseHelper.DATABASE_NAME;
-import static java.security.AccessController.getContext;
 
 // Google Play Services
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.api.GoogleApiClient;
+
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.drive.Drive;
 import com.google.android.gms.drive.DriveApi;
@@ -92,7 +96,7 @@ import com.google.android.gms.drive.DriveId;
 import com.google.android.gms.drive.MetadataChangeSet;
 import com.google.android.gms.drive.OpenFileActivityBuilder;
 
-public class MonitorizareMainActivity extends AppCompatActivity implements  GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class MonitorizareMainActivity extends AppCompatActivity  implements  GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private GoogleApiClient mGoogleApiClient;
     private static final String TAG = "Google Drive Activity";
@@ -167,9 +171,54 @@ public class MonitorizareMainActivity extends AppCompatActivity implements  Goog
                 }
         );
         showEmptyDataTextView();
-        connectToGoogleAPIClient();
+        //connectToGoogleAPIClient();
+
+    }
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+        registerReceiver(broadcastReceiver, intentFilter);
     }
 
+    @Override
+    protected void onPause()
+    {
+        super.onPause();
+        unregisterReceiver(broadcastReceiver);
+    }
+
+    private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver()
+    {
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+            final String action = intent.getAction();
+            if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION))
+            {
+                if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false))
+                {
+                    // wifi is enabled
+                    Toast.makeText(MonitorizareMainActivity.this,"Este Online",Toast.LENGTH_SHORT).show();
+                    //connectToGoogleAPIClient();
+                }
+                else
+                {
+                    // wifi is disabled
+                    Toast.makeText(MonitorizareMainActivity.this,"Nu este Online",Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    };
+
+    public boolean checkNetwork()
+    {
+        ConnectivityManager connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        return (networkInfo !=null && networkInfo.isConnected());
+    }
     public void connectToGoogleAPIClient()
     {
         backupOrRestore = true;
@@ -344,9 +393,10 @@ public class MonitorizareMainActivity extends AppCompatActivity implements  Goog
 
         CharSequence colors[] = new CharSequence[]{"Editare", "Stergere"};
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Alegeti optiunea");
-        builder.setItems(colors, new DialogInterface.OnClickListener() {
+         final AlertDialog builder = new AlertDialog.Builder(MonitorizareMainActivity.this)
+        .setTitle("Alegeti optiunea")
+        .setItems(colors,
+                new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (which == 0) {
@@ -356,8 +406,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements  Goog
                     deleteData(position);
                 }
             }
-        });
-        builder.show();
+        }).show();
+        doKeepDialog(builder);
     }
 
     @Override
@@ -388,7 +438,13 @@ public class MonitorizareMainActivity extends AppCompatActivity implements  Goog
         Log.i(TAG, "GoogleApiClient connection suspended");
     }
 
-
+    private static void doKeepDialog(Dialog dialog){
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+        lp.copyFrom(dialog.getWindow().getAttributes());
+        lp.width = WindowManager.LayoutParams.WRAP_CONTENT;
+        lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
+        dialog.getWindow().setAttributes(lp);
+    }
     @Override
     protected void onStop() {
         super.onStop();
@@ -499,7 +555,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements  Goog
         }
 
 
-        new AlertDialog.Builder(MonitorizareMainActivity.this)
+     final AlertDialog dialog =   new AlertDialog.Builder(MonitorizareMainActivity.this)
                 .setView(formView)
                 .setCancelable(false)
                 .setPositiveButton("Adauga",
@@ -539,7 +595,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements  Goog
                                 dialog.cancel();
                             }
                         }).show();
-
+        doKeepDialog(dialog);
 
     }
 
@@ -621,6 +677,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements  Goog
         final AlertDialog alertDialog = alertDialogBuilderUserInput.create();
         alertDialog.show();
 
+
+        doKeepDialog(alertDialog);
+
         alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -642,7 +701,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements  Goog
                     inOut.INPUT = Integer.parseInt(input.getText().toString());
                     inOut.OUTPUT = Integer.parseInt(output.getText().toString());
 
-
                     updateData(inOut, position);
                 } else {
                     // create new note
@@ -656,19 +714,5 @@ public class MonitorizareMainActivity extends AppCompatActivity implements  Goog
     }
 
 
-    /*public static void verifyStoragePermissions(Activity activity) {
-        // Check if we have read or write permission
-        int writePermission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        int readPermission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE);
-
-        if (writePermission != PackageManager.PERMISSION_GRANTED || readPermission != PackageManager.PERMISSION_GRANTED) {
-            // We don't have permission so prompt the user
-            ActivityCompat.requestPermissions(
-                    activity,
-                    PERMISSIONS_STORAGE,
-                    REQUEST_EXTERNAL_STORAGE
-            );
-        }
-    }*/
 
 }
