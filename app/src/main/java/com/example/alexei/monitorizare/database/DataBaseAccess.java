@@ -26,17 +26,6 @@ public class DataBaseAccess {
     private ExternalSQLiteHelper openHelper;
     private SQLiteDatabase database;
     private static DataBaseAccess instance;
-    /*private static final String INOUTTABLE = "InOutTable";
-
-    private static final String ID = "input_ID";
-
-    private static final String DATE = "Date";
-    private static final String INPUT = "Input";
-    private static final String OUTPUT = "Output";
-    private static final String DIFFERENCE = "Difference";
-    private static final String INPUTTOTAL = "InputTotal";
-    private static final String OUTPUTTOTAL = "OutputTotal";
-*/
 
     /**
      * Private constructor to avoid object creation from outside classes.
@@ -99,8 +88,7 @@ public class DataBaseAccess {
                 newdata.INPUT = cursor.getInt(2);
                 newdata.OUTPUT = cursor.getInt(3);
                 newdata.DIFFERENCE = cursor.getInt(4);
-                //newdata.INPUTTOTAL = cursor.getInt(5);
-                //newdata.OUTPUTTOTAL = cursor.getInt(6);
+
                 list.add(newdata);
             } while (cursor.moveToNext());
         }
@@ -115,8 +103,7 @@ public class DataBaseAccess {
         values.put("Input", inOut.INPUT);
         values.put("Output", inOut.OUTPUT);
         values.put("Difference", inOut.DIFFERENCE);
-        /*values.put(INPUTTOTAL, inOut.INPUTTOTAL);
-        values.put(OUTPUTTOTAL, inOut.OUTPUTTOTAL);*/
+
          database.update("InOutTable", values, "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
          database.close();
         if(database == null)
@@ -138,13 +125,12 @@ public class DataBaseAccess {
 
     public boolean insertData(InOut inOut) {
         ContentValues values = new ContentValues();
-        //values.put(ID, inputID);
+
         values.put("Date", inOut.DATE);
         values.put("Input", inOut.INPUT);
         values.put("Output", inOut.OUTPUT);
         values.put("Difference", inOut.DIFFERENCE);
-        /*values.put(INPUTTOTAL, inOut.INPUTTOTAL);
-        values.put(OUTPUTTOTAL, inOut.OUTPUTTOTAL);*/
+
 
         database.insert("InOutTable", null, values);
         database.close();

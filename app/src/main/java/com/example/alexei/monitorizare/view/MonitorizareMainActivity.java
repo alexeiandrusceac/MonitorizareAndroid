@@ -3,11 +3,9 @@ package com.example.alexei.monitorizare.view;
 //import android.content.Intent;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
-import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -15,54 +13,35 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.support.annotation.NonNull;
-import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.TabLayout;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.DefaultItemAnimator;
-import android.support.v7.widget.LinearLayoutManager;
-
-import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.Gravity;
+import android.util.TypedValue;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.view.animation.GridLayoutAnimationController;
-import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
-import android.widget.TableLayout;
-import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
 import com.example.alexei.monitorizare.R;
 import com.example.alexei.monitorizare.database.DataBaseAccess;
-import com.example.alexei.monitorizare.database.DataBaseHelper;
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
-
-import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -105,10 +84,12 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
     private static final int REQUEST_CODE_RESOLUTION = 3;
 
     private boolean backupOrRestore = true;
-
+    private TextView inputTotalView;
+    private TextView outputTotalView;
+    private TextView differenceTotalView;
     private List<InOut> listOfData = new ArrayList<>();
     DataBaseAccess dataBaseAccess;
-    //private TableLayout tableLayoutRecords;
+    private LinearLayout linearLayout;
     private TextView noDataView;
     private TableView<String[]> tb;
     private TableHelper tableHelper;
@@ -118,13 +99,18 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
     private static String[] PERMISSIONS_STORAGE = {
             Manifest.permission.READ_EXTERNAL_STORAGE
     };
-    private RecyclerView.LayoutManager mLayoutManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_monitorizare_main);
+
         noDataView = (TextView) findViewById(R.id.noDataView);
+        linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
+        inputTotalView = (TextView)findViewById(R.id.totalInput);
+        outputTotalView = (TextView) findViewById(R.id.totalOutput);
+        differenceTotalView = (TextView)findViewById(R.id.totalDifferenta);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (fromExternalSource) {
@@ -151,7 +137,7 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
             tableHelper = new TableHelper(this);
             tb = (TableView<String[]>) findViewById(R.id.tableView);
             tb.setColumnCount(5);
-            tb.setHeaderBackgroundColor(/*Color.parseColor("#2ecc71"))*/ContextCompat.getColor(MonitorizareMainActivity.this, R.color.colorAccent));
+            tb.setHeaderBackgroundColor(ContextCompat.getColor(MonitorizareMainActivity.this, R.color.colorAccent));
             tb.setHeaderAdapter(new SimpleTableHeaderAdapter(this, tableHelper.getHeaders()));
             tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
             tb.addDataClickListener(new TableDataClickListener<String[]>() {
@@ -172,7 +158,7 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         );
         showEmptyDataTextView();
         //connectToGoogleAPIClient();
-
+        calculateSumTotal();
     }
     @Override
     protected void onResume()
@@ -202,23 +188,17 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
                 {
                     // wifi is enabled
                     Toast.makeText(MonitorizareMainActivity.this,"Este Online",Toast.LENGTH_SHORT).show();
-                    //connectToGoogleAPIClient();
+                    connectToGoogleAPIClient();
                 }
                 else
                 {
                     // wifi is disabled
-                    Toast.makeText(MonitorizareMainActivity.this,"Nu este Online",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MonitorizareMainActivity.this,"Nu sunteti online",Toast.LENGTH_SHORT).show();
                 }
             }
         }
     };
 
-    public boolean checkNetwork()
-    {
-        ConnectivityManager connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-        return (networkInfo !=null && networkInfo.isConnected());
-    }
     public void connectToGoogleAPIClient()
     {
         backupOrRestore = true;
@@ -415,18 +395,16 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         switch (requestCode) {
 
             case REQUEST_CODE_CREATOR:
-                // Called after a file is saved to Drive.
+                // Se apeleaza dupa ce se salveaza in Drive.
                 if (resultCode == RESULT_OK) {
-                    Log.i(TAG, "Backup successfully saved.");
-                    Toast.makeText(this, "Backup successufly loaded!", Toast.LENGTH_SHORT).show();
+                    Log.i(TAG, "Copia sa salvat cu succes.");
+                    Toast.makeText(this, "Copia sa incarcat cu succes!", Toast.LENGTH_SHORT).show();
                 }
                 break;
 
             case REQUEST_CODE_OPENER:
                 if (resultCode == RESULT_OK) {
-                    DriveId driveId = data.getParcelableExtra(
-                            OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID);
-                    //Toast.makeText(this, driveId.toString(), Toast.LENGTH_SHORT).show();
+                    DriveId driveId = data.getParcelableExtra(OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID);
                     DriveFile file = driveId.asDriveFile();
                     importFromDrive(file);
                 }
@@ -521,10 +499,24 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         listOfData.remove(position);
         tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
         tb.refreshDrawableState();
-
+        calculateSumTotal();
         showEmptyDataTextView();
     }
 
+    public void calculateSumTotal() {
+        int inputTotal = 0;
+        int outputTotal = 0;
+        int differenceTotal = 0;
+        for (InOut inOut : listOfData)
+        {
+            inputTotal += inOut.INPUT;
+            outputTotal += inOut.OUTPUT;
+            differenceTotal += inOut.DIFFERENCE;
+        }
+        inputTotalView.setText(String.valueOf(inputTotal));
+        outputTotalView.setText(String.valueOf(outputTotal));
+        differenceTotalView.setText(String.valueOf(differenceTotal));
+    }
 
     private void showDialogInsertData() {
         final DataBaseAccess dataBaseAccess;
@@ -535,11 +527,9 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
 
         final EditText primitInput = (EditText) formView.findViewById(R.id.inputText);
         final EditText cheltuitInput = (EditText) formView.findViewById(R.id.outputText);
-        //final EditText dateInput = (EditText)formView.findViewById(R.id.dateText);
         final EditText dateInput = setDate(formView);
-        // final TextView differenceInput = (TextView)findViewById(R.id.differenceText);
 
-        //              final String dateInsert = dateInput.getText().toString();
+
         if (fromExternalSource) {
             // Check the external database file. External database must be available for the first time deployment.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
@@ -554,8 +544,7 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
             dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
         }
 
-
-     final AlertDialog dialog =   new AlertDialog.Builder(MonitorizareMainActivity.this)
+        final AlertDialog dialog = new AlertDialog.Builder(MonitorizareMainActivity.this)
                 .setView(formView)
                 .setCancelable(false)
                 .setPositiveButton("Adauga",
@@ -567,10 +556,8 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
 
                                 inOut.DATE = dateInput.getText().toString();
                                 inOut.INPUT = Integer.parseInt(primitInput.getText().toString());
-                                inOut.OUTPUT = Integer.parseInt(cheltuitInput.getText().toString());
+                                inOut.OUTPUT =  Integer.parseInt(cheltuitInput.getText().toString());
                                 inOut.DIFFERENCE = Integer.parseInt(primitInput.getText().toString()) - Integer.parseInt(cheltuitInput.getText().toString());
-                                inOut.INPUTTOTAL = 0;
-                                inOut.OUTPUTTOTAL = 0;
 
                                 dataBaseAccess.open();
                                 boolean addSucces = dataBaseAccess.insertData(inOut);
@@ -586,6 +573,7 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
                                 tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfData)));
 
                                 showEmptyDataTextView();
+                                calculateSumTotal();
                             }
                         })
                 .setNegativeButton("Anuleaza",
@@ -596,7 +584,6 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
                             }
                         }).show();
         doKeepDialog(dialog);
-
     }
 
     public EditText setDate(View dialogView) {
@@ -677,7 +664,6 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         final AlertDialog alertDialog = alertDialogBuilderUserInput.create();
         alertDialog.show();
 
-
         doKeepDialog(alertDialog);
 
         alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
@@ -702,17 +688,16 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
                     inOut.OUTPUT = Integer.parseInt(output.getText().toString());
 
                     updateData(inOut, position);
+                    calculateSumTotal();
                 } else {
                     // create new note
                     dataBaseAccess.open();
                     dataBaseAccess.insertData(inOut);
                     dataBaseAccess.close();
+                    calculateSumTotal();
 
                 }
             }
         });
     }
-
-
-
 }

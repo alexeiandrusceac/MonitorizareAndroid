@@ -15,7 +15,7 @@ public class TableHelper {
 
     private final boolean fromExternalSource = false;
     Context mContext;
-    private String[] headers ={"Nr.crt","Data","Primit","Cheltuit","Diferenta"};
+    private String[] headers ={"Nr.crt","Data","Primit","Cheltuit","Final"};
     private String [][]  inOutArray;
 
     public TableHelper(Context context){
@@ -42,7 +42,7 @@ public class TableHelper {
             inOutArray[i][2]=String.valueOf(inOutData.INPUT);
             inOutArray[i][3]=String.valueOf(inOutData.OUTPUT);
             inOutArray[i][4]=String.valueOf(inOutData.DIFFERENCE);
-            //inOutArray[i][5]=String.valueOf(inOutData.INPUT);
+
         }
 
         return inOutArray;

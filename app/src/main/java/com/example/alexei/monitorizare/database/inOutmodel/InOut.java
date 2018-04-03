@@ -12,8 +12,6 @@ public class InOut {
     public int INPUT;
     public int OUTPUT;
     public int DIFFERENCE;
-    public int INPUTTOTAL;
-    public int OUTPUTTOTAL;
 
     public InOut(){}
 
