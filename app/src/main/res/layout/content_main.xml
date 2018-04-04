@@ -14,106 +14,17 @@
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:showIn="@layout/activity_monitorizare_main">
 
-    <!--do it at home-->
-    <!--
-    <LinearLayout android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:orientation="vertical"
-        xmlns:android="http://schemas.android.com/apk/res/android">
-
-        <TextView
-            android:id="@+id/textView2"
-            android:layout_width="wrap_content"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:text="" />
-
-        <Button
-            android:id="@+id/btn_distance_walked"
-            android:layout_width="match_parent"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:clickable="false"
-            android:text="Distance walked = " />
-
-        <TextView
-            android:id="@+id/textView3"
-            android:layout_width="wrap_content"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:text="" />
-
-        <Button
-            android:id="@+id/btn_exersise_time"
-            android:layout_width="match_parent"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:clickable="false"
-            android:text="Exercise time = " />
-
-        <TextView
-            android:id="@+id/textView4"
-            android:layout_width="wrap_content"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:text="" />
-
-        <Button
-            android:id="@+id/btn_average_speed"
-            android:layout_width="match_parent"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:clickable="false"
-            android:text="Average speed = " />
-
-        <TextView
-            android:id="@+id/textView5"
-            android:layout_width="wrap_content"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:text="" />
-
-        <Button
-            android:id="@+id/btn_calories_burned"
-            android:layout_width="match_parent"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:clickable="false"
-            android:text="Callories burned = " />
-
-        <TextView
-            android:id="@+id/textView6"
-            android:layout_width="wrap_content"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:clickable="false"
-            android:text="" />
-
-        <Button
-            android:id="@+id/btn_back"
-            android:layout_width="match_parent"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:text="Back" />
-
-        <TextView
-            android:id="@+id/textView1"
-            android:layout_width="wrap_content"
-            android:layout_height="0dip"
-            android:layout_weight="1"
-            android:text="" />
-    </LinearLayout>
 
     <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal">
+    android:orientation="vertical">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:weightSum="3">
+        android:weightSum="3"
+        android:orientation="horizontal"
+       >
             <TextView
                 android:id="@+id/totalInputLabel"
                 android:layout_width="wrap_content"
@@ -123,9 +34,12 @@
                 android:lineSpacingExtra="8sp"
                 android:text="@string/input"
                 android:textColor="#000000"
+                android:layout_gravity="center_horizontal"
+                android:gravity="center"
                 android:textSize="@dimen/input"
+                android:layout_weight="1"
                 android:textStyle="bold|italic"
-                android:layout_weight="1"/>
+               />
 
             <TextView
                 android:id="@+id/totalOutputLabel"
@@ -136,9 +50,12 @@
                 android:lineSpacingExtra="8sp"
                 android:text="@string/output"
                 android:textColor="#000000"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:layout_gravity="center_horizontal"
                 android:textSize="@dimen/output"
                 android:textStyle="bold|italic"
-                android:layout_weight="1"/>
+                />
 
             <TextView
                 android:id="@+id/totalDifferenceLabel"
@@ -149,23 +66,29 @@
                 android:lineSpacingExtra="8sp"
                 android:text="@string/difference"
                 android:textColor="#000000"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:layout_gravity="center_horizontal"
                 android:textSize="@dimen/difference"
                 android:textStyle="bold|italic"
-                android:layout_weight="1"/>
+                />
     </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:weightSum="3"
+        android:orientation="horizontal"
         >
 
         <TextView
             android:id="@+id/totalInput"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
+            android:layout_gravity="center_horizontal"
             android:fontFamily="sans-serif-medium"
             android:layout_marginBottom="@dimen/input"
+            android:gravity="center"
+            android:layout_weight="1"
             android:lineSpacingExtra="8sp"
             android:textColor="#0000FF"
             android:textSize="@dimen/input"
@@ -175,8 +98,10 @@
             android:id="@+id/totalOutput"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
+            android:layout_gravity="center_horizontal"
             android:layout_marginBottom="@dimen/output"
+            android:gravity="center"
+            android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:lineSpacingExtra="8sp"
             android:textColor="#32CD32"
@@ -187,18 +112,20 @@
             android:id="@+id/totalDifferenta"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="2"
+            android:layout_weight="1"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
             android:layout_marginBottom="@dimen/difference"
             android:fontFamily="sans-serif-medium"
             android:lineSpacingExtra="8sp"
             android:textColor="#DC143C"
+
             android:textDirection="ltr"
             android:textSize="@dimen/difference"
             android:textStyle="bold" />
     </LinearLayout>
+    </LinearLayout>
 
-</LinearLayout>
--->
     <de.codecrafters.tableview.TableView
         android:id="@+id/tableView"
         android:layout_width="wrap_content"

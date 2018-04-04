@@ -6,6 +6,7 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
+import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -15,6 +16,7 @@ import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -71,12 +73,24 @@ import com.google.android.gms.drive.Drive;
 import com.google.android.gms.drive.DriveApi;
 import com.google.android.gms.drive.DriveContents;
 import com.google.android.gms.drive.DriveFile;
+
 import com.google.android.gms.drive.DriveId;
+import com.google.android.gms.drive.DriveResourceClient;
+
+import com.google.android.gms.drive.MetadataBuffer;
 import com.google.android.gms.drive.MetadataChangeSet;
 import com.google.android.gms.drive.OpenFileActivityBuilder;
+import com.google.android.gms.drive.metadata.SearchableCollectionMetadataField;
+import com.google.android.gms.drive.metadata.SearchableMetadataField;
+import com.google.android.gms.drive.query.Filters;
+import com.google.android.gms.drive.query.Query;
+import com.google.android.gms.drive.query.SearchableField;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 
 public class MonitorizareMainActivity extends AppCompatActivity  implements  GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
-
+        private DriveResourceClient mDriverResourceClient;
     private GoogleApiClient mGoogleApiClient;
     private static final String TAG = "Google Drive Activity";
     private  static final int REQUEST_CODE_OPENER = 1;
@@ -209,10 +223,13 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         mGoogleApiClient = gApiClient(mGoogleApiClient);
         mGoogleApiClient.connect();
     }
+
     public void saveToDrive()
     {
         //database path on the device
         final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
+        final MetadataBuffer buffer= null;
+
 
         Drive.DriveApi.newDriveContents(mGoogleApiClient).setResultCallback(new ResultCallback<DriveApi.DriveContentsResult>() {
 
@@ -226,37 +243,67 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
                 }
                 Log.i(TAG, "Backup to drive started.");
 
-                try {
 
-                    File dbFile = new File(inFileName);
-                    FileInputStream fis = new FileInputStream(dbFile);
-                    OutputStream outputStream = driveContentsResult.getDriveContents().getOutputStream();
+                    try {
 
-                    // Transfer bytes from the inputfile to the outputfile
-                    byte[] buffer = new byte[1024];
-                    int length;
-                    while ((length = fis.read(buffer)) > 0) {
-                        outputStream.write(buffer, 0, length);
+                        File dbFile = new File(inFileName);
+                        FileInputStream fis = new FileInputStream(dbFile);
+                        OutputStream outputStream = driveContentsResult.getDriveContents().getOutputStream();
+
+                        // Transfer bytes from the inputfile to the outputfile
+                        byte[] buffer = new byte[1024];
+                        int length;
+                        while ((length = fis.read(buffer)) > 0) {
+                            outputStream.write(buffer, 0, length);
+                        }
+
+                        //drive file metadata
+                        MetadataChangeSet metadataChangeSet = new MetadataChangeSet.Builder()
+                                .setTitle("MonitorizareDB.db")
+                                .setMimeType("application/db")
+                                .build();
+
+                        // Create an intent for the file chooser, and start it.
+                        IntentSender intentSender = Drive.DriveApi
+                                .newCreateFileActivityBuilder()
+                                .setInitialMetadata(metadataChangeSet)
+                                .setInitialDriveContents(driveContentsResult.getDriveContents())
+                                .build(mGoogleApiClient);
+//////////////////////////////////////////
+
+                        mDriverResourceClient.delete(driveContentsResult.getDriveContents().getDriveId().asDriveFile()).addOnSuccessListener(MonitorizareMainActivity.this, new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                Toast.makeText(MonitorizareMainActivity.this,"Sa sters",Toast.LENGTH_SHORT).show();
+                            finish();
+                            }
+
+                        }).addOnFailureListener(MonitorizareMainActivity.this, new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Toast.makeText(MonitorizareMainActivity.this,"Nu sa sters",Toast.LENGTH_SHORT).show();
+                                finish();
+                            }
+                        });
+
+                            /*if(fileOld.exists())
+                            {
+                                fileOld.delete();
+                            }*/
+//////////////////////////////////////////////////////////////
+                       // if(metadataBufferResult.getMetadataBuffer().getCount() >0)
+                        //{
+                           // Toast.makeText(MonitorizareMainActivity.this, "Este  fisier", Toast.LENGTH_SHORT).show();
+                        //}
+
+                        //if(driveContentsResult.getDriveContents().getDriveId().asDriveFile())
+                        //startIntentSenderForResult(intentSender, REQUEST_CODE_CREATOR, null, 0, 0, 0);
+
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
                     }
 
-                    //drive file metadata
-                    MetadataChangeSet metadataChangeSet = new MetadataChangeSet.Builder()
-                            .setTitle("MonitorizareDB.db")
-                            .setMimeType("application/db")
-                            .build();
-
-                    // Create an intent for the file chooser, and start it.
-                    IntentSender intentSender = Drive.DriveApi
-                            .newCreateFileActivityBuilder()
-                            .setInitialMetadata(metadataChangeSet)
-                            .setInitialDriveContents(driveContentsResult.getDriveContents())
-                            .build(mGoogleApiClient);
-
-                    startIntentSenderForResult(intentSender, REQUEST_CODE_CREATOR, null, 0, 0, 0);
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
             }
         });
     }
