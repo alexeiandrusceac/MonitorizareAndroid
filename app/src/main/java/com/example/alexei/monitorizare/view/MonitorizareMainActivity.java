@@ -3,10 +3,10 @@ package com.example.alexei.monitorizare.view;
 //import android.content.Intent;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
-import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -14,23 +14,27 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Color;
+import android.icu.util.Output;
+import android.location.LocationProvider;
 import android.net.wifi.WifiManager;
-import android.os.AsyncTask;
+
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.INotificationSideChannel;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
-import android.util.TypedValue;
-import android.view.GestureDetector;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
@@ -64,38 +68,49 @@ import static com.example.alexei.monitorizare.database.DataBaseHelper.DATABASE_N
 
 // Google Play Services
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.GoogleApiAvailability;
 
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.drive.CreateFileActivityOptions;
 import com.google.android.gms.drive.Drive;
 import com.google.android.gms.drive.DriveApi;
+import com.google.android.gms.drive.DriveClient;
 import com.google.android.gms.drive.DriveContents;
 import com.google.android.gms.drive.DriveFile;
 
+import com.google.android.gms.drive.DriveFolder;
 import com.google.android.gms.drive.DriveId;
-import com.google.android.gms.drive.DriveResourceClient;
 
+import com.google.android.gms.drive.DriveResource;
+import com.google.android.gms.drive.DriveResourceClient;
+import com.google.android.gms.drive.Metadata;
 import com.google.android.gms.drive.MetadataBuffer;
 import com.google.android.gms.drive.MetadataChangeSet;
 import com.google.android.gms.drive.OpenFileActivityBuilder;
-import com.google.android.gms.drive.metadata.SearchableCollectionMetadataField;
-import com.google.android.gms.drive.metadata.SearchableMetadataField;
 import com.google.android.gms.drive.query.Filters;
 import com.google.android.gms.drive.query.Query;
 import com.google.android.gms.drive.query.SearchableField;
+import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
-public class MonitorizareMainActivity extends AppCompatActivity  implements  GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
-        private DriveResourceClient mDriverResourceClient;
-    private GoogleApiClient mGoogleApiClient;
+
+public class MonitorizareMainActivity extends AppCompatActivity {
+    private DriveResourceClient driveResourceClient;
+    private DriveClient driveClient;
+    private DriveResource driveResource;
+    private GoogleSignInClient mGoogleSignIn;
     private static final String TAG = "Google Drive Activity";
-    private  static final int REQUEST_CODE_OPENER = 1;
+    private static final int REQUEST_CODE_SIGNIN = 0;
+    private static final int REQUEST_CODE_DATA = 1;
     private static final int REQUEST_CODE_CREATOR = 2;
-    private static final int REQUEST_CODE_RESOLUTION = 3;
+    private LinearLayout linearLayoutWithTotals;
 
     private boolean backupOrRestore = true;
     private TextView inputTotalView;
@@ -118,12 +133,18 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_monitorizare_main);
-
+        SignIn();
         noDataView = (TextView) findViewById(R.id.noDataView);
         linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
-        inputTotalView = (TextView)findViewById(R.id.totalInput);
+        inputTotalView = (TextView) findViewById(R.id.totalInput);
         outputTotalView = (TextView) findViewById(R.id.totalOutput);
-        differenceTotalView = (TextView)findViewById(R.id.totalDifferenta);
+        differenceTotalView = (TextView) findViewById(R.id.totalDifferenta);
+
+        final LayoutInflater layoutInflater = getLayoutInflater();
+        final View linearLayoutTotalsView = layoutInflater.inflate(R.layout.content_main,null);
+
+
+        linearLayoutWithTotals = linearLayoutTotalsView.findViewById(R.id.linearLayout);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -174,9 +195,9 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         //connectToGoogleAPIClient();
         calculateSumTotal();
     }
+
     @Override
-    protected void onResume()
-    {
+    protected void onResume() {
         super.onResume();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
@@ -184,56 +205,158 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
     }
 
     @Override
-    protected void onPause()
-    {
+    protected void onPause() {
         super.onPause();
         unregisterReceiver(broadcastReceiver);
     }
 
-    private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver()
-    {
+    private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
-        public void onReceive(Context context, Intent intent)
-        {
+        public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
-            if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION))
-            {
-                if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false))
-                {
+            if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
+                if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
                     // wifi is enabled
-                    Toast.makeText(MonitorizareMainActivity.this,"Este Online",Toast.LENGTH_SHORT).show();
-                    connectToGoogleAPIClient();
-                }
-                else
-                {
+                    Toast.makeText(MonitorizareMainActivity.this, "Este Online", Toast.LENGTH_SHORT).show();
+                    SignIn();//connectToGoogleAPIClient();
+                } else {
                     // wifi is disabled
-                    Toast.makeText(MonitorizareMainActivity.this,"Nu sunteti online",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MonitorizareMainActivity.this, "Nu sunteti online", Toast.LENGTH_SHORT).show();
                 }
             }
         }
     };
 
-    public void connectToGoogleAPIClient()
-    {
-        backupOrRestore = true;
-        if(mGoogleApiClient != null)
-        {
-            mGoogleApiClient.disconnect();
-        }
-        mGoogleApiClient = gApiClient(mGoogleApiClient);
-        mGoogleApiClient.connect();
+    @SuppressLint("RestrictedApi")
+    private void SignIn() {
+        Log.i(TAG, "Logheazate");
+        mGoogleSignIn = buildGoogleSignInClient();
+        startActivityForResult(mGoogleSignIn.getSignInIntent(), REQUEST_CODE_SIGNIN);
     }
 
-    public void saveToDrive()
-    {
+    @NonNull
+    @SuppressLint("RestrictedApi")
+    private GoogleSignInClient buildGoogleSignInClient() {
+        GoogleSignInOptions signInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestScopes(Drive.SCOPE_FILE).build();
+
+        return GoogleSignIn.getClient(this, signInOptions);
+    }
+
+
+    public void saveToDrive() {
         //database path on the device
         final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
-        final MetadataBuffer buffer= null;
-
-
-        Drive.DriveApi.newDriveContents(mGoogleApiClient).setResultCallback(new ResultCallback<DriveApi.DriveContentsResult>() {
-
+        driveResourceClient.createContents().continueWithTask(new Continuation<DriveContents, Task<Void>>() {
             @Override
+            public Task<Void> then(@NonNull Task<DriveContents> task) throws Exception {
+                Log.i(TAG, "Se creaza baza de date");
+                File dbFile = new File(inFileName);
+                FileInputStream fis = new FileInputStream(dbFile);
+                OutputStream outputStream = task.getResult().getOutputStream();
+
+                // Transfer bytes from the inputfile to the outputfile
+                final byte[] buffer = new byte[1024];
+                int length;
+                while ((length = fis.read(buffer)) > 0) {
+                    outputStream.write(buffer, 0, length);
+                }
+
+                //drive file metadata
+                final MetadataChangeSet metadataChangeSet = new MetadataChangeSet.Builder()
+                        .setTitle("MonitorizareDB.db")
+                        .setMimeType("application/db")
+                        .build();
+                CreateFileActivityOptions createFileActivityOptions = new CreateFileActivityOptions.Builder()
+                        .setInitialMetadata(metadataChangeSet)
+                        .setInitialDriveContents(task.getResult())
+                        .build();
+
+                Query query = new Query.Builder().addFilter(Filters.eq(SearchableField.TITLE, "MonitorizareDB.db")).build();
+
+                Task<MetadataBuffer> queryTask = driveResourceClient.query(query);
+
+                queryTask.addOnSuccessListener(MonitorizareMainActivity.this, new OnSuccessListener<MetadataBuffer>() {
+                    @Override
+                    public void onSuccess(MetadataBuffer metadata) {
+                        for (Metadata m : metadata) {
+                            driveResource = m.getDriveId().asDriveResource();
+                            driveResourceClient.delete(driveResource);
+                        }
+                    }
+                }).addOnFailureListener(MonitorizareMainActivity.this, new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+
+                    }
+                });
+
+                return driveClient
+                        .newCreateFileActivityIntentSender(createFileActivityOptions)
+                        .continueWith(
+                                new Continuation<IntentSender, Void>() {
+                                    @Override
+                                    public Void then(@NonNull Task<IntentSender> task) throws Exception {
+                                        startIntentSenderForResult(task.getResult(), REQUEST_CODE_CREATOR, null, 0, 0, 0);
+
+                                        return null;
+                                    }
+                                });
+            }
+        });
+    }
+
+        /*Task.continueWithTask(new Continuation<DriveContents, Task<IntentSender>>() {
+            @Override
+            public Task<IntentSender> then(@NonNull Task<DriveContents> task) throws Exception {
+                DriveContents contents = task.getResult();
+                File dbFile = new File(inFileName);
+                FileInputStream fis = new FileInputStream(dbFile);
+                OutputStream outputStream = contents.getOutputStream();
+
+                // Transfer bytes from the inputfile to the outputfile
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = fis.read(buffer)) > 0) {
+                    outputStream.write(buffer, 0, length);
+                }
+
+                //drive file metadata
+                MetadataChangeSet metadataChangeSet = new MetadataChangeSet.Builder()
+                        .setTitle("MonitorizareDB.db")
+                        .setMimeType("application/db")
+                        .build();
+
+                // Create an intent for the file chooser, and start it.
+
+                CreateFileActivityOptions createFileActivityOptions = new CreateFileActivityOptions.Builder()
+                        .setInitialMetadata(metadataChangeSet)
+                        .setInitialDriveContents(contents)
+                        .build();
+//////////////////////////////////////////
+                Query query= new Query.Builder().addFilter(Filters.eq(SearchableField.TITLE,"MonitorizareDB.db")).build();
+
+                Task<MetadataBuffer> queryTask = driveResourceClient.query(query);
+
+                queryTask.addOnSuccessListener(MonitorizareMainActivity.this, new OnSuccessListener<MetadataBuffer>() {
+                    @Override
+                    public void onSuccess(MetadataBuffer metadata) {
+                        for(Metadata m : metadata)
+                        {
+                            driveResource = m.getDriveId().asDriveResource();
+                            driveResourceClient.delete(driveResource);
+                        }
+                    }
+                }).addOnFailureListener(MonitorizareMainActivity.this, new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+
+                    }
+                });
+*/
+
+
+
+            /*@Override
             public void onResult(@NonNull DriveApi.DriveContentsResult driveContentsResult) {
 
                 if (!driveContentsResult.getStatus().isSuccess()) {
@@ -246,50 +369,12 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
 
                     try {
 
-                        File dbFile = new File(inFileName);
-                        FileInputStream fis = new FileInputStream(dbFile);
-                        OutputStream outputStream = driveContentsResult.getDriveContents().getOutputStream();
 
-                        // Transfer bytes from the inputfile to the outputfile
-                        byte[] buffer = new byte[1024];
-                        int length;
-                        while ((length = fis.read(buffer)) > 0) {
-                            outputStream.write(buffer, 0, length);
-                        }
 
-                        //drive file metadata
-                        MetadataChangeSet metadataChangeSet = new MetadataChangeSet.Builder()
-                                .setTitle("MonitorizareDB.db")
-                                .setMimeType("application/db")
-                                .build();
-
-                        // Create an intent for the file chooser, and start it.
-                        IntentSender intentSender = Drive.DriveApi
-                                .newCreateFileActivityBuilder()
-                                .setInitialMetadata(metadataChangeSet)
-                                .setInitialDriveContents(driveContentsResult.getDriveContents())
-                                .build(mGoogleApiClient);
-//////////////////////////////////////////
-
-                        mDriverResourceClient.delete(driveContentsResult.getDriveContents().getDriveId().asDriveFile()).addOnSuccessListener(MonitorizareMainActivity.this, new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                Toast.makeText(MonitorizareMainActivity.this,"Sa sters",Toast.LENGTH_SHORT).show();
-                            finish();
-                            }
-
-                        }).addOnFailureListener(MonitorizareMainActivity.this, new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                Toast.makeText(MonitorizareMainActivity.this,"Nu sa sters",Toast.LENGTH_SHORT).show();
-                                finish();
-                            }
-                        });
-
-                            /*if(fileOld.exists())
+                            if(fileOld.exists())
                             {
                                 fileOld.delete();
-                            }*/
+                            }
 //////////////////////////////////////////////////////////////
                        // if(metadataBufferResult.getMetadataBuffer().getCount() >0)
                         //{
@@ -305,9 +390,9 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
                     }
 
             }
-        });
-    }
-    private void importFromDrive(DriveFile dbFile) {
+        });*/
+
+    /*private void importFromDrive(DriveFile dbFile) {
 
         //database path on the device
         final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
@@ -356,12 +441,12 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
                 }
             }
         });
-    }
-    public GoogleApiClient gApiClient(GoogleApiClient googleApiClient) {
+    }*/
+    /*public GoogleApiClient gApiClient(GoogleApiClient googleApiClient) {
         if(googleApiClient ==null)
         {
-            googleApiClient = new GoogleApiClient.Builder(this)
-                    .addApi(Drive.API)
+            googleApiClient = new GoogleApiClient.Builder(MonitorizareMainActivity.this)
+                    .addApi(LocationServices.)
                     .addScope(Drive.SCOPE_FILE)
                     .addConnectionCallbacks(this)
                     .addOnConnectionFailedListener(this)
@@ -383,9 +468,9 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         } catch (IntentSender.SendIntentException e) {
             Log.e(TAG, "Exception while starting resolution activity", e);
         }
-    }
+    }*/
 
-    @Override
+   /* @Override
     public void onConnected(Bundle connectionHint) {
         Log.i(TAG, "API client connected.");
 
@@ -404,7 +489,7 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
                 Log.w(TAG, "Unable to send Open File Intent", e);
             }
         }
-    }
+    }*/
 
     private void showEmptyDataTextView() {
 
@@ -420,61 +505,67 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
 
         CharSequence colors[] = new CharSequence[]{"Editare", "Stergere"};
 
-         final AlertDialog builder = new AlertDialog.Builder(MonitorizareMainActivity.this)
-        .setTitle("Alegeti optiunea")
-        .setItems(colors,
-                new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                if (which == 0) {
+        final AlertDialog builder = new AlertDialog.Builder(MonitorizareMainActivity.this)
+                .setTitle("Alegeti optiunea")
+                .setItems(colors,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                if (which == 0) {
 
-                    showDialogEditData(true, listOfData.get(position), position);
-                } else {
-                    deleteData(position);
-                }
-            }
-        }).show();
+                                    showDialogEditData(true, listOfData.get(position), position);
+                                } else {
+                                    deleteData(position);
+                                }
+                            }
+                        }).show();
         doKeepDialog(builder);
     }
 
     @Override
     protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
+        MonitorizareMainActivity.super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
+            case REQUEST_CODE_SIGNIN:
+                Log.i(TAG, "Sign in request code");
+                // Called after user is signed in.
+                if (resultCode == RESULT_OK) {
+                    Log.i(TAG, "Sa logat cu succes");
+                    // Se utilizeaza ultimul cont logat de cind are Google Drive
+                    driveClient = Drive.getDriveClient(MonitorizareMainActivity.this, GoogleSignIn.getLastSignedInAccount(MonitorizareMainActivity.this));
+                    // se creaza un Drive Resource Client
+                    driveResourceClient =
+                            Drive.getDriveResourceClient(MonitorizareMainActivity.this, GoogleSignIn.getLastSignedInAccount(MonitorizareMainActivity.this));
 
+                }
+                break;
             case REQUEST_CODE_CREATOR:
                 // Se apeleaza dupa ce se salveaza in Drive.
                 if (resultCode == RESULT_OK) {
                     Log.i(TAG, "Copia sa salvat cu succes.");
-                    Toast.makeText(this, "Copia sa incarcat cu succes!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MonitorizareMainActivity.this, "Copia sa incarcat cu succes!", Toast.LENGTH_SHORT).show();
                 }
                 break;
 
-            case REQUEST_CODE_OPENER:
+            /*case REQUEST_CODE_OPENER:
                 if (resultCode == RESULT_OK) {
                     DriveId driveId = data.getParcelableExtra(OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID);
                     DriveFile file = driveId.asDriveFile();
                     importFromDrive(file);
-                }
+                }*/
+            case REQUEST_CODE_DATA:
+                saveToDrive();
+                break;
         }
     }
 
-    @Override
-    public void onConnectionSuspended(int cause) {
-        Log.i(TAG, "GoogleApiClient connection suspended");
-    }
 
-    private static void doKeepDialog(Dialog dialog){
+    private static void doKeepDialog(Dialog dialog) {
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
         lp.copyFrom(dialog.getWindow().getAttributes());
         lp.width = WindowManager.LayoutParams.WRAP_CONTENT;
         lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
         dialog.getWindow().setAttributes(lp);
-    }
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if (mGoogleApiClient != null)
-            mGoogleApiClient.disconnect();
     }
 
     private void updateData(InOut inOut, int position) {
@@ -486,23 +577,24 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         data.OUTPUT = inOut.OUTPUT;
         data.DIFFERENCE = inOut.INPUT - inOut.OUTPUT;
         if (fromExternalSource) {
-            // Check the external database file. External database must be available for the first time deployment.
+            // Se verifica baza de date externa. Baza de date externa trebuie sa fie accesibila pentru prima lansare.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
             File dbFile = new File(externalDirectory, DATABASE_NAME);
             if (!dbFile.exists()) {
                 return;
             }
-            // If external database is avaliable, deploy it
+            // Daca baza de date externa  este accesibila, atunci se lanseaza
             dataBaseAccess = DataBaseAccess.getInstance(this, externalDirectory);
         } else {
-            // From assets
+            // Daca nu este accesibila atunci se lanseaza din mapa Assets
             dataBaseAccess = DataBaseAccess.getInstance(this, null);
         }
-        // deleting the note from db
+
         dataBaseAccess.open();
 
-        // updating note in db
+        // actualizarea inregistrarii in baza de date
         boolean updateSuccess = dataBaseAccess.updateData(data);
+        saveToDrive();
         dataBaseAccess.close();
         if (updateSuccess) {
             Toast.makeText(MonitorizareMainActivity.this, "Informatia sa actualizat cu succes", Toast.LENGTH_SHORT).show();
@@ -510,10 +602,11 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
             Toast.makeText(MonitorizareMainActivity.this, "Nu sa actualizat informatia", Toast.LENGTH_SHORT).show();
 
         }
-        // refreshing the list
+
+        // se reincarca lista de date
         listOfData.set(position, data);
+
         tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
-        //mAdapter.notifyItemChanged(position);
         tb.refreshDrawableState();
         showEmptyDataTextView();
     }
@@ -521,21 +614,22 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
     private void deleteData(int position) {
         DataBaseAccess dataBaseAccess;
         if (fromExternalSource) {
-            // Check the external database file. External database must be available for the first time deployment.
+            // Se verifica baza de date externa. Baza de date externa trebuie sa fie accesibila pentru prima lansare.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
             File dbFile = new File(externalDirectory, DATABASE_NAME);
             if (!dbFile.exists()) {
                 return;
             }
-            // If external database is avaliable, deploy it
+            // Daca baza de date externa  este accesibila, atunci se lanseaza
             dataBaseAccess = DataBaseAccess.getInstance(this, externalDirectory);
         } else {
-            // From assets
+            // Daca nu este accesibila atunci se lanseaza din mapa Assets
             dataBaseAccess = DataBaseAccess.getInstance(this, null);
         }
-        // deleting the note from db
+        // stergerea inregistrarii din baza de date
         dataBaseAccess.open();
         boolean deleteSucces = dataBaseAccess.deleteData(listOfData.get(position));
+        saveToDrive();
         dataBaseAccess.close();
         if (deleteSucces) {
             Toast.makeText(MonitorizareMainActivity.this, "Informatia sa sters cu succes", Toast.LENGTH_SHORT).show();
@@ -544,6 +638,7 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         }
 
         listOfData.remove(position);
+
         tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
         tb.refreshDrawableState();
         calculateSumTotal();
@@ -554,8 +649,7 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         int inputTotal = 0;
         int outputTotal = 0;
         int differenceTotal = 0;
-        for (InOut inOut : listOfData)
-        {
+        for (InOut inOut : listOfData) {
             inputTotal += inOut.INPUT;
             outputTotal += inOut.OUTPUT;
             differenceTotal += inOut.DIFFERENCE;
@@ -571,23 +665,22 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
         LayoutInflater layoutInflater = (LayoutInflater) MonitorizareMainActivity.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         final View formView = layoutInflater.inflate(R.layout.data_dialog, null, false);
 
-
         final EditText primitInput = (EditText) formView.findViewById(R.id.inputText);
         final EditText cheltuitInput = (EditText) formView.findViewById(R.id.outputText);
         final EditText dateInput = setDate(formView);
 
 
         if (fromExternalSource) {
-            // Check the external database file. External database must be available for the first time deployment.
+            //Se verifica baza de date externa. Baza de date externa trebuie sa fie accesibila pentru prima lansare.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
             File dbFile = new File(externalDirectory, DATABASE_NAME);
             if (!dbFile.exists()) {
                 return;
             }
-            // If external database is avaliable, deploy it
+            // Daca baza de date externa  este accesibila, atunci se lanseaza
             dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, externalDirectory);
         } else {
-            // From assets
+            // Daca nu este accesibila atunci se lanseaza din mapa Assets
             dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
         }
 
@@ -603,11 +696,12 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
 
                                 inOut.DATE = dateInput.getText().toString();
                                 inOut.INPUT = Integer.parseInt(primitInput.getText().toString());
-                                inOut.OUTPUT =  Integer.parseInt(cheltuitInput.getText().toString());
+                                inOut.OUTPUT = Integer.parseInt(cheltuitInput.getText().toString());
                                 inOut.DIFFERENCE = Integer.parseInt(primitInput.getText().toString()) - Integer.parseInt(cheltuitInput.getText().toString());
 
                                 dataBaseAccess.open();
                                 boolean addSucces = dataBaseAccess.insertData(inOut);
+                                saveToDrive();
                                 dataBaseAccess.close();
                                 if (addSucces) {
                                     Toast.makeText(MonitorizareMainActivity.this, "Informatia sa adaugat cu succes", Toast.LENGTH_SHORT).show();
@@ -621,6 +715,7 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
 
                                 showEmptyDataTextView();
                                 calculateSumTotal();
+
                             }
                         })
                 .setNegativeButton("Anuleaza",
@@ -666,16 +761,16 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
 
         final DataBaseAccess dataBaseAccess;
         if (fromExternalSource) {
-            // Check the external database file. External database must be available for the first time deployment.
+            // Se verifica baza de date externa. Baza de date externa trebuie sa fie accesibila pentru prima lansare.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
             File dbFile = new File(externalDirectory, DATABASE_NAME);
             if (!dbFile.exists()) {
                 return;
             }
-            // If external database is avaliable, deploy it
+            // Daca baza de date externa  este accesibila, atunci se lanseaza
             dataBaseAccess = DataBaseAccess.getInstance(this, externalDirectory);
         } else {
-            // From assets
+            // Daca nu este accesibila atunci se lanseaza din mapa Assets
             dataBaseAccess = DataBaseAccess.getInstance(this, null);
         }
 
@@ -727,24 +822,38 @@ public class MonitorizareMainActivity extends AppCompatActivity  implements  Goo
                     alertDialog.dismiss();
                 }
 
-                // check if user updating note
+                // verifica daca utilizatorul actualizeaza datele
                 if (shouldUpdate && inOut != null) {
-                    // update note by it's id
+                    // actualizeaza datele
                     inOut.DATE = dateInput.getText().toString();
                     inOut.INPUT = Integer.parseInt(input.getText().toString());
                     inOut.OUTPUT = Integer.parseInt(output.getText().toString());
 
                     updateData(inOut, position);
                     calculateSumTotal();
+
                 } else {
-                    // create new note
+                    // creaza o inregistrare noua
                     dataBaseAccess.open();
                     dataBaseAccess.insertData(inOut);
                     dataBaseAccess.close();
                     calculateSumTotal();
-
+                    saveToDrive();
                 }
             }
         });
     }
+
+
+   /* class ListOfChanges
+    {
+        public InOut inOutData;
+        public boolean changed;
+        public ListOfChanges(InOut inOutNew)
+        {
+            this.inOutData = inOutNew;
+            this.changed =false;
+
+        }
+    }*/
 }
