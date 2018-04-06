@@ -13,9 +13,8 @@ import java.util.List;
 
 public class TableHelper {
 
-    private final boolean fromExternalSource = false;
     Context mContext;
-    private String[] headers ={"Nr.crt","Data","Primit","Cheltuit","Final"};
+    private String[] headers ={"Nr.crt","Data","Primit","Cheltuit"};
     private String [][]  inOutArray;
 
     public TableHelper(Context context){
@@ -31,7 +30,7 @@ public class TableHelper {
     {
         InOut inOutData;
 
-        inOutArray = new String[listInOutData.size()][5];
+        inOutArray = new String[listInOutData.size()][4];
 
         for (int i=0;i<listInOutData.size();i++) {
 
@@ -41,8 +40,6 @@ public class TableHelper {
             inOutArray[i][1]=String.valueOf(inOutData.DATE);
             inOutArray[i][2]=String.valueOf(inOutData.INPUT);
             inOutArray[i][3]=String.valueOf(inOutData.OUTPUT);
-            inOutArray[i][4]=String.valueOf(inOutData.DIFFERENCE);
-
         }
 
         return inOutArray;

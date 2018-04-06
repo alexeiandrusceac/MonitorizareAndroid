@@ -7,4 +7,7 @@
     <color name="timestamp">#858585</color>
     <color name="note_list_text">#858585</color>
     <color name="ammount_text">#DC143C</color>
+    <color name="input">#0000FF</color>
+    <color name="output">#32CD32</color>
+
 </resources>

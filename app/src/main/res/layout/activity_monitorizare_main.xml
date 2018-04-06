@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.design.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:fitsSystemWindows="true">
 
     <android.support.design.widget.AppBarLayout
@@ -20,16 +19,70 @@
             app:popupTheme="@style/AppTheme.PopupOverlay" />
     </android.support.design.widget.AppBarLayout>
 
- <include layout ="@layout/content_main"/>
+    <include
+        android:id="@+id/include"
+        layout="@layout/content_main" />
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/buttonFloatingPrimit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="160dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginRight="@dimen/fab_margin"
+        android:visibility="invisible"
+        app:backgroundTint="@color/input"
+        android:tooltipText="@string/input"
+        app:elevation="6dp"
+        app:pressedTranslationZ="12dp"
+         />
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/buttonFloatingCheltuit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="90dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginRight="@dimen/fab_margin"
+        android:visibility="invisible"
+        app:elevation="6dp"
+        app:backgroundTint="@color/output"
+        app:pressedTranslationZ="12dp"
+        android:tooltipText="@string/output"
+         />
+
+    <TextView android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="@string/input"
+        android:elevation="6dp"
+        android:id="@+id/inputTextFAB"
+        android:textSize="8dp"
+        android:visibility="invisible"
+        android:textColor="#fff"
+        app:layout_anchor="@id/buttonFloatingPrimit"
+        app:layout_anchorGravity="center"/>
+
+    <TextView android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:text="@string/output"
+        android:elevation="6dp"
+        android:textSize="8dp"
+        android:id="@+id/outputTextFAB"
+        android:visibility="invisible"
+        android:textColor="#fff"
+        app:layout_anchor="@id/buttonFloatingCheltuit"
+        app:layout_anchorGravity="center"/>
+
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/buttonFloating"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_alignParentBottom = "true"
-        android:layout_alignParentRight= "true"
+        app:elevation="6dp"
+        app:backgroundTint="@color/colorAccent"
+        app:pressedTranslationZ="12dp"
         android:layout_margin="@dimen/fab_margin"
         android:src="@drawable/ic_menu_add"
-        android:layout_alignParentEnd="true" />
+        />
+
+
 </android.support.design.widget.CoordinatorLayout>

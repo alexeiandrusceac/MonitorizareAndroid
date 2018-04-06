@@ -87,7 +87,6 @@ public class DataBaseAccess {
                 newdata.DATE = cursor.getString(1);
                 newdata.INPUT = cursor.getInt(2);
                 newdata.OUTPUT = cursor.getInt(3);
-                newdata.DIFFERENCE = cursor.getInt(4);
 
                 list.add(newdata);
             } while (cursor.moveToNext());
@@ -102,10 +101,9 @@ public class DataBaseAccess {
         values.put("Date", inOut.DATE);
         values.put("Input", inOut.INPUT);
         values.put("Output", inOut.OUTPUT);
-        values.put("Difference", inOut.DIFFERENCE);
 
-         database.update("InOutTable", values, "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
-         database.close();
+        database.update("InOutTable", values, "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
+        database.close();
         if(database == null)
         {return false;}
         else
@@ -129,8 +127,6 @@ public class DataBaseAccess {
         values.put("Date", inOut.DATE);
         values.put("Input", inOut.INPUT);
         values.put("Output", inOut.OUTPUT);
-        values.put("Difference", inOut.DIFFERENCE);
-
 
         database.insert("InOutTable", null, values);
         database.close();
@@ -140,26 +136,5 @@ public class DataBaseAccess {
             return true;
         }
     }
-
-    /*public void backupDataBase(String outFileName)
-    {
-        final String inFileName = database.getPath().toString();
-        try
-        {
-            File dbfile = new File(inFileName);
-            FileInputStream fileInputStream = new FileInputStream(dbfile);
-            OutputStream outputStream = new FileOutputStream(outFileName);
-            byte[] buffer = new byte[1024];
-            int length;
-            while((length = fileInputStream.read(buffer)) > 0)
-                outputStream.write(buffer,0,length);
-            outputStream.flush();
-            outputStream.close();
-            fileInputStream.close();
-            Toast.makeText(MonitorizareMainActivity.this, " Copierea bazei de date sa executat cu succes",Toast.LENGTH_SHORT).show();
-
-        }
-
-    }*/
 
 }

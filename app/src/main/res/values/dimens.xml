@@ -17,4 +17,6 @@
     <dimen name="timestamp">14sp</dimen>
     <dimen name="ammount_text">14sp</dimen>
     <dimen name="note_list_text">14sp</dimen>
+    <dimen name="fab_margin_input">22dp</dimen>
+    <dimen name ="fab_margin_output">20dp</dimen>
 </resources>

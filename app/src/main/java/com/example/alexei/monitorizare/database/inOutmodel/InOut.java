@@ -11,7 +11,6 @@ public class InOut {
     public String DATE;
     public int INPUT;
     public int OUTPUT;
-    public int DIFFERENCE;
 
     public InOut(){}
 
