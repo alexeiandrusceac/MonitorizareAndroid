@@ -7,5 +7,6 @@
     <string name ="difference">Final</string>
     <string name="msg_no_data">Nu sunt date</string>
     <string name="lbl_edit_data_title">Editare</string>
-
+    <string name="save_to_GDrive">Salveaza</string>
+    <string name="exit">Iesire</string>
 </resources>

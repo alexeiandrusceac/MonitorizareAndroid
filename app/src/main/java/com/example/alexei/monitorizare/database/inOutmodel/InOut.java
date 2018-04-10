@@ -1,5 +1,7 @@
 package com.example.alexei.monitorizare.database.inOutmodel;
 
+import java.io.Serializable;
+
 /**
  * Created by alexei.andrusceac on 21.03.2018.
  */
@@ -13,6 +15,7 @@ public class InOut {
     public int OUTPUT;
 
     public InOut(){}
+
 
 
 }

@@ -4,7 +4,7 @@
 
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="369dp"
-
+android:id="@+id/output"
     android:layout_height="wrap_content"
 
     android:orientation="vertical">
@@ -30,15 +30,7 @@
         android:hint="@string/date"
         android:inputType="date" />
 
-   <!-- <EditText
-        android:id="@+id/inputText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
-        android:fontFamily="sans-serif"
-        android:hint="@string/input"
-        android:inputType="number"
-        tools:targetApi="jelly_bean" />-->
+
 
     <EditText
         android:id="@+id/outputText"

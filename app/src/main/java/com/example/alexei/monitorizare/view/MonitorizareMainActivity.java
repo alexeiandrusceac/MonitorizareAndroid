@@ -30,6 +30,8 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
@@ -43,6 +45,7 @@ import android.widget.Toast;
 
 import com.example.alexei.monitorizare.R;
 import com.example.alexei.monitorizare.database.DataBaseAccess;
+import com.example.alexei.monitorizare.database.DataBaseHelper;
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 
 import java.io.File;
@@ -88,7 +91,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
 
-public class MonitorizareMainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MonitorizareMainActivity extends AppCompatActivity implements View.OnClickListener {
     private DriveResourceClient driveResourceClient;
     private DriveClient driveClient;
     private DriveResource driveResource;
@@ -97,7 +100,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     private static final int REQUEST_CODE_SIGNIN = 0;
     private static final int REQUEST_CODE_DATA = 1;
     private static final int REQUEST_CODE_CREATOR = 2;
-     private boolean buttonOpen = false;
+    private boolean buttonOpen = false;
     private TextView inputTotalView;
     private TextView outputTotalView;
     private TextView differenceTotalView;
@@ -113,10 +116,11 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     private static String[] PERMISSIONS_STORAGE = {
             Manifest.permission.READ_EXTERNAL_STORAGE
     };
-/// Floating Action Buttons
-    private FloatingActionButton buttonAdd, buttonInput,buttonOutput;
-    private Animation button_open,button_close,button_forward,button_backward;
+    /// Floating Action Buttons
+    private FloatingActionButton buttonAdd, buttonInput, buttonOutput;
+    private Animation button_open, button_close, button_forward, button_backward;
     private TextView textViewInput, textViewOutput;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -129,11 +133,11 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         differenceTotalView = (TextView) findViewById(R.id.totalDifferenta);
 
         buttonAdd = (FloatingActionButton) findViewById(R.id.buttonFloating);
-        buttonInput =(FloatingActionButton) findViewById(R.id.buttonFloatingPrimit);
-        buttonOutput = (FloatingActionButton)findViewById(R.id.buttonFloatingCheltuit);
+        buttonInput = (FloatingActionButton) findViewById(R.id.buttonFloatingPrimit);
+        buttonOutput = (FloatingActionButton) findViewById(R.id.buttonFloatingCheltuit);
 
         textViewInput = (TextView) findViewById(R.id.inputTextFAB);
-        textViewOutput = (TextView)findViewById(R.id.outputTextFAB);
+        textViewOutput = (TextView) findViewById(R.id.outputTextFAB);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (fromExternalSource) {
@@ -171,10 +175,10 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
             });
         }
 
-        button_open = AnimationUtils.loadAnimation(getApplicationContext(),R.anim.button_open);
-        button_close = AnimationUtils.loadAnimation(getApplicationContext(),R.anim.button_close);
-        button_forward = AnimationUtils.loadAnimation(getApplicationContext(),R.anim.button_forward);
-        button_backward= AnimationUtils.loadAnimation(getApplicationContext(),R.anim.button_backward);
+        button_open = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.button_open);
+        button_close = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.button_close);
+        button_forward = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.button_forward);
+        button_backward = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.button_backward);
 
         buttonAdd.setOnClickListener(this);
         buttonInput.setOnClickListener(this);
@@ -186,17 +190,16 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                         showDialogInsertData();
                     }
                 }*/
-       // );
+        // );
         showEmptyDataTextView();
         //connectToGoogleAPIClient();
         calculateSumTotal();
     }
+
     @Override
-    public void onClick(View view)
-    {
+    public void onClick(View view) {
         int id = view.getId();
-        switch (id)
-        {
+        switch (id) {
             case R.id.buttonFloating:
                 animateButtons();
 
@@ -217,21 +220,18 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
         registerReceiver(broadcastReceiver, intentFilter);
     }
-    public void animateButtons()
-    {
-        if(buttonOpen)
-        {
-           buttonAdd.startAnimation(button_backward);
-           buttonInput.startAnimation(button_close);
-           buttonOutput.startAnimation(button_close);
-           buttonInput.setClickable(false);
-           buttonOutput.setClickable(false);
-           buttonOpen =false;
+
+    public void animateButtons() {
+        if (buttonOpen) {
+            buttonAdd.startAnimation(button_backward);
+            buttonInput.startAnimation(button_close);
+            buttonOutput.startAnimation(button_close);
+            buttonInput.setClickable(false);
+            buttonOutput.setClickable(false);
+            buttonOpen = false;
             textViewInput.setVisibility(View.GONE);
             textViewOutput.setVisibility(View.GONE);
-        }
-        else
-        {
+        } else {
             buttonAdd.startAnimation(button_forward);
             buttonInput.startAnimation(button_open);
             buttonOutput.startAnimation(button_open);
@@ -243,6 +243,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
         }
     }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -401,13 +402,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                 }
                 break;
 
-
-            case REQUEST_CODE_DATA:
-                saveToDrive();
-                break;
         }
     }
-
 
 
     private void updateData(InOut inOut, int position) {
@@ -436,7 +432,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
         // actualizarea inregistrarii in baza de date
         boolean updateSuccess = dataBaseAccess.updateData(data);
-        saveToDrive();
         dataBaseAccess.close();
         if (updateSuccess) {
             Toast.makeText(MonitorizareMainActivity.this, "Informatia sa actualizat cu succes", Toast.LENGTH_SHORT).show();
@@ -471,7 +466,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         // stergerea inregistrarii din baza de date
         dataBaseAccess.open();
         boolean deleteSucces = dataBaseAccess.deleteData(listOfData.get(position));
-        saveToDrive();
+
         dataBaseAccess.close();
         if (deleteSucces) {
             Toast.makeText(MonitorizareMainActivity.this, "Informatia sa sters cu succes", Toast.LENGTH_SHORT).show();
@@ -542,7 +537,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 inOut.OUTPUT = 0;
                                 dataBaseAccess.open();
                                 boolean addSucces = dataBaseAccess.insertData(inOut);
-                                saveToDrive();
+
                                 dataBaseAccess.close();
                                 if (addSucces) {
                                     Toast.makeText(MonitorizareMainActivity.this, "Informatia sa adaugat cu succes", Toast.LENGTH_SHORT).show();
@@ -568,6 +563,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                         }).show();
 
     }
+
     private void showDialogInsertDataOutput() {
         final DataBaseAccess dataBaseAccess;
 
@@ -607,7 +603,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 inOut.INPUT = 0;
                                 dataBaseAccess.open();
                                 boolean addSucces = dataBaseAccess.insertData(inOut);
-                                saveToDrive();
+
                                 dataBaseAccess.close();
                                 if (addSucces) {
                                     Toast.makeText(MonitorizareMainActivity.this, "Informatia sa adaugat cu succes", Toast.LENGTH_SHORT).show();
@@ -657,28 +653,53 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         return dateinput;
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem menuitem) {
+        int id = menuitem.getItemId();
+
+        switch (id) {
+            case R.id.import_to_drive:
+                saveToDrive();
+                break;
+            case R.id.exit_from_App:
+                System.exit(1);
+                break;
+            default:
+                break;
+        }
+        return super.onOptionsItemSelected(menuitem);
+    }
 
     private void showDialogEditData(final boolean shouldUpdate, final InOut inOut, final int position) {
         final LayoutInflater layoutInflaterAndroid = LayoutInflater.from(getApplicationContext());
-        View view;
-        final EditText output; final EditText input;
-        final String inputText; final String outputText;
-        if(inOut.OUTPUT != 0) {
+        final View view;
+        final DataBaseAccess dataBaseAccess;
+        final String[] inputText = new String[1];
+        final String[] outputText = new String[1];
+        final EditText output;
+        final EditText input;
+
+        if (inOut.OUTPUT != 0) {
             view = layoutInflaterAndroid.inflate(R.layout.data_dialog_output, null);
-            output  = view.findViewById(R.id.outputText);
+            output = (EditText) view.findViewById(R.id.outputText);
             output.setText(String.valueOf(inOut.OUTPUT));
             output.setTextColor(Color.BLACK);
             output.setHintTextColor(Color.RED);
-            outputText  = output.getText().toString();
-        }
-        else
-        {
+            outputText[0] = output.getText().toString();
+        } else {
             view = layoutInflaterAndroid.inflate(R.layout.data_dialog_input, null);
             input = view.findViewById(R.id.inputText);
             input.setText(String.valueOf(inOut.INPUT));
             input.setTextColor(Color.BLACK);
             input.setHintTextColor(Color.RED);
-            inputText = input.getText().toString();
+            inputText[0] = input.getText().toString();
 
         }
         final EditText dateInput = setDate(view);
@@ -686,7 +707,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         AlertDialog.Builder alertDialogBuilderUserInput = new AlertDialog.Builder(MonitorizareMainActivity.this);
         alertDialogBuilderUserInput.setView(view);
 
-        final DataBaseAccess dataBaseAccess;
+
         if (fromExternalSource) {
             // Se verifica baza de date externa. Baza de date externa trebuie sa fie accesibila pentru prima lansare.
             String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
@@ -700,8 +721,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
             // Daca nu este accesibila atunci se lanseaza din mapa Assets
             dataBaseAccess = DataBaseAccess.getInstance(this, null);
         }
-
-
 
         if (shouldUpdate && inOut != null) {
             dateInput.setText(String.valueOf(inOut.DATE));
@@ -729,58 +748,59 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
 ///////////////////////////////////Verifica ///////////////////////////////////////////////////////
         alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("ResourceType")
             @Override
             public void onClick(View v) {
-                // Show toast message when no text is entered
-                if(v instanceof layoutInflaterAndroid.inflate(R.layout.data_dialog_output, null))
-                {
-                    if (TextUtils.isEmpty() {
-                    Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
-                    return;
+                //   String idView= String.valueOf(view.getId());// Show toast message when no text is entered
 
-                }/*layoutInflaterAndroid.inflate(R.layout.data_dialog_input, null);*/)
-                if (TextUtils.isEmpty() {
-                    Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
-                    return;
-                } else if (TextUtils.isEmpty(output.getText().toString())) {
-                    Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati cheltuit!", Toast.LENGTH_SHORT).show();
-                    return;
+                int id = view.getId();
+                if (id == R.id.input)
+                {
+                    if (TextUtils.isEmpty(inputText[0])) {
+                        Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                } else if (id == R.id.output) {
+                    if (TextUtils.isEmpty(outputText[0])) {
+                        Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati cheltuit!", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                 } else {
                     alertDialog.dismiss();
                 }
 
-                // verifica daca utilizatorul actualizeaza datele
-                if (shouldUpdate && inOut != null) {
+
+            // verifica daca utilizatorul actualizeaza datele
+                if(shouldUpdate && inOut != null)
+
+                {
                     // actualizeaza datele
                     inOut.DATE = dateInput.getText().toString();
-                    inOut.INPUT = Integer.parseInt(input.getText().toString());
-                    inOut.OUTPUT = Integer.parseInt(output.getText().toString());
+                    inOut.INPUT = (inputText[0].equals(null) ? 0 : Integer.parseInt(inputText[0]));
+                    if (outputText[0].equals(null))
+                    {
+                       inOut.OUTPUT = 0;
+                    }
+                    else
+                    {
+                        inOut.OUTPUT = Integer.parseInt(outputText[0]);
+                    }
+                //inOut.OUTPUT = (outputText[0].equals(null)? 0 : Integer.parseInt(outputText[0]));
 
-                    updateData(inOut, position);
-                    calculateSumTotal();
+                updateData(inOut, position);
+                calculateSumTotal();
 
-                } else {
-                    // creaza o inregistrare noua
-                    dataBaseAccess.open();
-                    dataBaseAccess.insertData(inOut);
-                    dataBaseAccess.close();
-                    calculateSumTotal();
-                    saveToDrive();
-                }
+            } else
+            {
+                // creaza o inregistrare noua
+                dataBaseAccess.open();
+                dataBaseAccess.insertData(inOut);
+                dataBaseAccess.close();
+                calculateSumTotal();
+
             }
-        });
-    }
-
-
-   /* class ListOfChanges
-    {
-        public InOut inOutData;
-        public boolean changed;
-        public ListOfChanges(InOut inOutNew)
-        {
-            this.inOutData = inOutNew;
-            this.changed =false;
-
         }
-    }*/
+    });
+}
+
 }
