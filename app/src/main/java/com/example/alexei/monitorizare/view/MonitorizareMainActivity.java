@@ -6,7 +6,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
-import android.app.Dialog;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -33,7 +33,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
+
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.DatePicker;
@@ -45,12 +45,16 @@ import android.widget.Toast;
 
 import com.example.alexei.monitorizare.R;
 import com.example.alexei.monitorizare.database.DataBaseAccess;
-import com.example.alexei.monitorizare.database.DataBaseHelper;
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -76,6 +80,7 @@ import com.google.android.gms.drive.Drive;
 import com.google.android.gms.drive.DriveClient;
 import com.google.android.gms.drive.DriveContents;
 
+import com.google.android.gms.drive.DriveFile;
 import com.google.android.gms.drive.DriveResource;
 import com.google.android.gms.drive.DriveResourceClient;
 import com.google.android.gms.drive.Metadata;
@@ -183,16 +188,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         buttonAdd.setOnClickListener(this);
         buttonInput.setOnClickListener(this);
         buttonOutput.setOnClickListener(this);
-        // but.setOnClickListener(this);
-               /* new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        showDialogInsertData();
-                    }
-                }*/
-        // );
+
         showEmptyDataTextView();
-        //connectToGoogleAPIClient();
+
         calculateSumTotal();
     }
 
@@ -258,7 +256,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                 if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
                     // wifi is enabled
                     Toast.makeText(MonitorizareMainActivity.this, "Este Online", Toast.LENGTH_SHORT).show();
-                    SignIn();//connectToGoogleAPIClient();
+                    SignIn();
                 } else {
                     // wifi is disabled
                     Toast.makeText(MonitorizareMainActivity.this, "Nu sunteti online", Toast.LENGTH_SHORT).show();
@@ -404,7 +402,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
         }
     }
-
 
     private void updateData(InOut inOut, int position) {
 
@@ -665,6 +662,13 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         int id = menuitem.getItemId();
 
         switch (id) {
+            case R.id.download_from_GDrive:
+                try {
+                    importFromDrive();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                break;
             case R.id.import_to_drive:
                 saveToDrive();
                 break;
@@ -675,6 +679,46 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                 break;
         }
         return super.onOptionsItemSelected(menuitem);
+    }
+
+    private void importFromDrive() throws FileNotFoundException {
+        //database path on the device
+        DataBaseAccess dataBaseAccess;
+
+        final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
+
+        final OutputStream fis = new FileOutputStream(inFileName);
+
+        Query query = new Query.Builder().addFilter(Filters.eq(SearchableField.TITLE, "MonitorizareDB.db")).build();
+        Task<MetadataBuffer> bufferTask = driveResourceClient.query(query);
+        Task<DriveContents> openFile = driveResourceClient.openFile(bufferTask.getResult().get(0).getDriveId().asDriveFile(), DriveFile.MODE_READ_ONLY);
+
+        openFile.continueWithTask(new Continuation<DriveContents, Task<Void>>() {
+                    @Override
+                    public Task<Void> then(@NonNull Task<DriveContents> task) throws Exception {
+                        DriveContents contents = task.getResult();
+                        byte[] buffer = new byte[1024];
+                        int read;
+                        InputStream inputStream = contents.getInputStream();
+                        while ((read = inputStream.read(buffer)) != -1) {
+                            fis.write(buffer, 0, read);
+
+                        }
+
+                        fis.flush();
+                        ///fis.close();
+
+                        Task<Void> discardTask = driveResourceClient.discardContents(contents);
+                        return discardTask;
+                    }
+                });
+        dataBaseAccess = DataBaseAccess.getInstance(this,null);
+        dataBaseAccess.open();
+        listOfData = dataBaseAccess.getAllPosts();
+        dataBaseAccess.close();
+        tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
+        tb.refreshDrawableState();
+
     }
 
     private void showDialogEditData(final boolean shouldUpdate, final InOut inOut, final int position) {
@@ -692,14 +736,14 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
             output.setText(String.valueOf(inOut.OUTPUT));
             output.setTextColor(Color.BLACK);
             output.setHintTextColor(Color.RED);
-            outputText[0] = output.getText().toString();
+
         } else {
             view = layoutInflaterAndroid.inflate(R.layout.data_dialog_input, null);
             input = view.findViewById(R.id.inputText);
             input.setText(String.valueOf(inOut.INPUT));
             input.setTextColor(Color.BLACK);
             input.setHintTextColor(Color.RED);
-            inputText[0] = input.getText().toString();
+
 
         }
         final EditText dateInput = setDate(view);
@@ -745,23 +789,21 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         final AlertDialog alertDialog = alertDialogBuilderUserInput.create();
         alertDialog.show();
 
-
-///////////////////////////////////Verifica ///////////////////////////////////////////////////////
         alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
             @SuppressLint("ResourceType")
             @Override
             public void onClick(View v) {
-                //   String idView= String.valueOf(view.getId());// Show toast message when no text is entered
 
                 int id = view.getId();
-                if (id == R.id.input)
-                {
-                    if (TextUtils.isEmpty(inputText[0])) {
+                if (id == R.id.input) {
+
+                    if (TextUtils.isEmpty(((EditText) view.findViewById(R.id.inputText)).getText().toString())) {
                         Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
                         return;
                     }
                 } else if (id == R.id.output) {
-                    if (TextUtils.isEmpty(outputText[0])) {
+
+                    if (TextUtils.isEmpty(((EditText) view.findViewById(R.id.outputText)).getText().toString())) {
                         Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati cheltuit!", Toast.LENGTH_SHORT).show();
                         return;
                     }
@@ -769,38 +811,28 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                     alertDialog.dismiss();
                 }
 
-
-            // verifica daca utilizatorul actualizeaza datele
-                if(shouldUpdate && inOut != null)
+                // verifica daca utilizatorul actualizeaza datele
+                if (shouldUpdate && inOut != null)
 
                 {
                     // actualizeaza datele
                     inOut.DATE = dateInput.getText().toString();
-                    inOut.INPUT = (inputText[0].equals(null) ? 0 : Integer.parseInt(inputText[0]));
-                    if (outputText[0].equals(null))
-                    {
-                       inOut.OUTPUT = 0;
-                    }
-                    else
-                    {
-                        inOut.OUTPUT = Integer.parseInt(outputText[0]);
-                    }
-                //inOut.OUTPUT = (outputText[0].equals(null)? 0 : Integer.parseInt(outputText[0]));
+                    inOut.INPUT = (inputText[0] == null ? 0 : Integer.parseInt(inputText[0]));
+                    inOut.OUTPUT = (outputText[0] == null ? 0 : Integer.parseInt(outputText[0]));
 
-                updateData(inOut, position);
-                calculateSumTotal();
+                    updateData(inOut, position);
+                    calculateSumTotal();
 
-            } else
-            {
-                // creaza o inregistrare noua
-                dataBaseAccess.open();
-                dataBaseAccess.insertData(inOut);
-                dataBaseAccess.close();
-                calculateSumTotal();
+                } else {
+                    // creaza o inregistrare noua
+                    dataBaseAccess.open();
+                    dataBaseAccess.insertData(inOut);
+                    dataBaseAccess.close();
+                    calculateSumTotal();
 
+                }
             }
-        }
-    });
-}
+        });
+    }
 
 }

@@ -7,6 +7,7 @@
     <string name ="difference">Final</string>
     <string name="msg_no_data">Nu sunt date</string>
     <string name="lbl_edit_data_title">Editare</string>
-    <string name="save_to_GDrive">Salveaza</string>
+    <string name="save_to_GDrive">Salveaza in contul Google</string>
     <string name="exit">Iesire</string>
+    <string name="export_from_GDrive">Extrage din contul Google</string>
 </resources>

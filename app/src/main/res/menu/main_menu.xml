@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item android:id="@+id/download_from_GDrive"
+        app:showAsAction="never"
+        android:orderInCategory="100"
+        android:title="@string/export_from_GDrive">
+    </item>
     <item
         android:id="@+id/import_to_drive"
         app:showAsAction="never"
@@ -11,6 +17,5 @@
         app:showAsAction="never"
         android:orderInCategory="100"
         android:title="@string/exit">
-
     </item>
 </menu>
