@@ -7,6 +7,7 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -15,6 +16,9 @@ import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.Uri;
 import android.net.wifi.WifiManager;
 
 import android.os.Build;
@@ -39,6 +43,7 @@ import android.view.animation.AnimationUtils;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -77,10 +82,12 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 
 import com.google.android.gms.drive.CreateFileActivityOptions;
 import com.google.android.gms.drive.Drive;
+import com.google.android.gms.drive.DriveApi;
 import com.google.android.gms.drive.DriveClient;
 import com.google.android.gms.drive.DriveContents;
 
 import com.google.android.gms.drive.DriveFile;
+import com.google.android.gms.drive.DriveId;
 import com.google.android.gms.drive.DriveResource;
 import com.google.android.gms.drive.DriveResourceClient;
 import com.google.android.gms.drive.Metadata;
@@ -101,6 +108,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     private DriveClient driveClient;
     private DriveResource driveResource;
     private GoogleSignInClient mGoogleSignIn;
+
     private static final String TAG = "Google Drive Activity";
     private static final int REQUEST_CODE_SIGNIN = 0;
     private static final int REQUEST_CODE_DATA = 1;
@@ -115,6 +123,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     private TextView noDataView;
     private TableView<String[]> tb;
     private TableHelper tableHelper;
+    private ProgressDialog progress;
+
     DatePickerDialog datepicker;
     private final boolean fromExternalSource = false;
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
@@ -130,12 +140,13 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_monitorizare_main);
-        SignIn();
+        //SignIn();
         noDataView = (TextView) findViewById(R.id.noDataView);
         linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
         inputTotalView = (TextView) findViewById(R.id.totalInput);
         outputTotalView = (TextView) findViewById(R.id.totalOutput);
         differenceTotalView = (TextView) findViewById(R.id.totalDifferenta);
+
 
         buttonAdd = (FloatingActionButton) findViewById(R.id.buttonFloating);
         buttonInput = (FloatingActionButton) findViewById(R.id.buttonFloatingPrimit);
@@ -215,7 +226,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     protected void onResume() {
         super.onResume();
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         registerReceiver(broadcastReceiver, intentFilter);
     }
 
@@ -238,7 +249,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
             buttonOpen = true;
             textViewInput.setVisibility(View.VISIBLE);
             textViewOutput.setVisibility(View.VISIBLE);
-
         }
     }
 
@@ -249,20 +259,30 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     }
 
     private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @SuppressLint("RestrictedApi")
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
-            if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
-                if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
-                    // wifi is enabled
-                    Toast.makeText(MonitorizareMainActivity.this, "Este Online", Toast.LENGTH_SHORT).show();
-                    SignIn();
-                } else {
-                    // wifi is disabled
-                    Toast.makeText(MonitorizareMainActivity.this, "Nu sunteti online", Toast.LENGTH_SHORT).show();
-                }
+            ConnectivityManager cnManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo wifiInfo = cnManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            boolean wifiConnected = wifiInfo.isConnected();
+            NetworkInfo celularInfo = cnManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+            boolean celularConnected = celularInfo.isConnected();
+
+            if (wifiConnected || celularConnected || action.equals(wifiConnected) || action.equals(celularConnected)) {
+
+                // wifi and celular is enabled
+                Toast.makeText(MonitorizareMainActivity.this, "Este Online", Toast.LENGTH_SHORT).show();
+                SignIn();
+            }
+            else
+                {
+                // wifi and celular is disabled
+                Toast.makeText(MonitorizareMainActivity.this, "Nu sunteti online", Toast.LENGTH_SHORT).show();
             }
         }
+
+
     };
 
     @SuppressLint("RestrictedApi")
@@ -271,6 +291,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         mGoogleSignIn = buildGoogleSignInClient();
         startActivityForResult(mGoogleSignIn.getSignInIntent(), REQUEST_CODE_SIGNIN);
     }
+
 
     @NonNull
     @SuppressLint("RestrictedApi")
@@ -683,17 +704,23 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
     private void importFromDrive() throws FileNotFoundException {
         //database path on the device
-        DataBaseAccess dataBaseAccess;
 
         final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
 
         final OutputStream fis = new FileOutputStream(inFileName);
 
-        Query query = new Query.Builder().addFilter(Filters.eq(SearchableField.TITLE, "MonitorizareDB.db")).build();
-        Task<MetadataBuffer> bufferTask = driveResourceClient.query(query);
-        Task<DriveContents> openFile = driveResourceClient.openFile(bufferTask.getResult().get(0).getDriveId().asDriveFile(), DriveFile.MODE_READ_ONLY);
+        Query query = new Query.Builder().addFilter(Filters.and(Filters.eq(SearchableField.MIME_TYPE, "application/db"),
+                Filters.eq(SearchableField.TITLE, "MonitorizareDB.db"))).build();
 
-        openFile.continueWithTask(new Continuation<DriveContents, Task<Void>>() {
+        driveResourceClient.query(query).addOnSuccessListener(this, new OnSuccessListener<MetadataBuffer>() {
+            @Override
+            public void onSuccess(MetadataBuffer metadata) {
+                DriveId driveid = metadata.get(0).getDriveId();
+                metadata.release();
+
+                Task<DriveContents> openFile = driveResourceClient.openFile(driveid.asDriveFile(), DriveFile.MODE_READ_ONLY);
+
+                openFile.continueWithTask(new Continuation<DriveContents, Task<Void>>() {
                     @Override
                     public Task<Void> then(@NonNull Task<DriveContents> task) throws Exception {
                         DriveContents contents = task.getResult();
@@ -706,19 +733,35 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                         }
 
                         fis.flush();
-                        ///fis.close();
+                        fis.close();
+                        inputStream.close();
 
+
+                        final DataBaseAccess dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
+                        dataBaseAccess.open();
+                        listOfData = dataBaseAccess.getAllPosts();
+                        dataBaseAccess.close();
+
+                        tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfData)));
+                        tb.refreshDrawableState();
+                        calculateSumTotal();
+
+                        Toast.makeText(MonitorizareMainActivity.this, "Incarcarea datelor sa efectuat cu succes", Toast.LENGTH_SHORT).show();
                         Task<Void> discardTask = driveResourceClient.discardContents(contents);
                         return discardTask;
                     }
-                });
-        dataBaseAccess = DataBaseAccess.getInstance(this,null);
-        dataBaseAccess.open();
-        listOfData = dataBaseAccess.getAllPosts();
-        dataBaseAccess.close();
-        tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
-        tb.refreshDrawableState();
 
+                })
+                        .addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Log.i(TAG, "nu sa putut citi din baza de date", e);
+                                finish();
+                            }
+                        });
+
+            }
+        });
     }
 
     private void showDialogEditData(final boolean shouldUpdate, final InOut inOut, final int position) {
@@ -796,25 +839,22 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
                 int id = view.getId();
                 if (id == R.id.input) {
-
-                    if (TextUtils.isEmpty(((EditText) view.findViewById(R.id.inputText)).getText().toString())) {
+                    inputText[0] = ((EditText) (view.findViewById(R.id.inputText))).getText().toString();
+                    if (TextUtils.isEmpty(inputText[0])) {
                         Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
                         return;
                     }
                 } else if (id == R.id.output) {
-
-                    if (TextUtils.isEmpty(((EditText) view.findViewById(R.id.outputText)).getText().toString())) {
+                    outputText[0] = ((EditText) view.findViewById(R.id.outputText)).getText().toString();
+                    if (TextUtils.isEmpty(outputText[0])) {
                         Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati cheltuit!", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                } else {
-                    alertDialog.dismiss();
                 }
+                alertDialog.dismiss();
 
                 // verifica daca utilizatorul actualizeaza datele
-                if (shouldUpdate && inOut != null)
-
-                {
+                if (shouldUpdate && inOut != null) {
                     // actualizeaza datele
                     inOut.DATE = dateInput.getText().toString();
                     inOut.INPUT = (inputText[0] == null ? 0 : Integer.parseInt(inputText[0]));
