@@ -4,11 +4,10 @@ package com.example.alexei.monitorizare.view;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 
-import android.app.DownloadManager;
-import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -16,23 +15,25 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
+
 import android.graphics.Color;
+
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.Uri;
-import android.net.wifi.WifiManager;
+
 
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Log;
 
 import android.view.LayoutInflater;
@@ -45,8 +46,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.DatePicker;
 import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
+
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -56,14 +56,24 @@ import com.example.alexei.monitorizare.database.DataBaseAccess;
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 
 import java.io.BufferedReader;
+
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -126,7 +136,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     private List<InOut> listOfData = new ArrayList<>();
     private List<InOut> listOfNewData = new ArrayList<>();
     DataBaseAccess dataBaseAccess;
-    private LinearLayout linearLayout;
+
     private TextView noDataView;
     private TableView<String[]> tb;
     private TableHelper tableHelper;
@@ -151,7 +161,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         query = new Query.Builder().addFilter(Filters.and(Filters.eq(SearchableField.MIME_TYPE, "application/db"), Filters.eq(SearchableField.TITLE, "MonitorizareDB.db"))).build();
 
         noDataView = (TextView) findViewById(R.id.noDataView);
-        linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
+
         inputTotalView = (TextView) findViewById(R.id.totalInput);
         outputTotalView = (TextView) findViewById(R.id.totalOutput);
         differenceTotalView = (TextView) findViewById(R.id.totalDifferenta);
@@ -181,7 +191,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         }
 
         dataBaseAccess.open();
-        listOfData = dataBaseAccess.getAllPosts();
+        listOfNewData = dataBaseAccess.getAllPosts();
         dataBaseAccess.close();
 
         if (fromExternalSource && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -192,7 +202,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
             tb.setColumnCount(4);
             tb.setHeaderBackgroundColor(ContextCompat.getColor(MonitorizareMainActivity.this, R.color.colorAccent));
             tb.setHeaderAdapter(new SimpleTableHeaderAdapter(this, tableHelper.getHeaders()));
-            tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
+            tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfNewData)));
             tb.addDataClickListener(new TableDataClickListener<String[]>() {
                 @Override
                 public void onDataClicked(int rowIndex, String[] clickedData) {
@@ -235,27 +245,24 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         }
     }
 
-    public void enableImportIfExistDB() {
-        final MenuItem menuItem = mainMenu.findItem(R.id.download_from_GDrive);
-
-
-       //Query queryFile = new Query.Builder().addFilter( Filters.eq(SearchableField.TITLE, "MonitorizareDB.db")).build();
-
+    public void enableImportSaveIfExistDB() {
+        final MenuItem downloadFromDrive = mainMenu.findItem(R.id.download_from_GDrive);
+            MenuItem saveToDrive = mainMenu.findItem(R.id.import_to_drive);
         driveResourceClient.query(query)
                 .addOnSuccessListener(this, new OnSuccessListener<MetadataBuffer>() {
                     @Override
                     public void onSuccess(MetadataBuffer metadata) {
-                menuItem.setEnabled(true);
+                if(metadata.getCount() > 0) {
+                    downloadFromDrive.setEnabled(true);
+                }
+                else
+                {
+                    downloadFromDrive.setEnabled(false);
+                }
             }
-        })
-                .addOnFailureListener(this, new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
+        });
+        saveToDrive.setEnabled(true);
 
-                        menuItem.setEnabled(false);
-                        finish();
-                    }
-                });
     }
 
     @Override
@@ -347,8 +354,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                         .setInitialDriveContents(task.getResult())
                         .build();
 
-                Query query = new Query.Builder().addFilter(Filters.eq(SearchableField.TITLE, "MonitorizareDB.db")).build();
-
                 Task<MetadataBuffer> queryTask = driveResourceClient.query(query);
 
                 queryTask.addOnSuccessListener(MonitorizareMainActivity.this, new OnSuccessListener<MetadataBuffer>() {
@@ -357,6 +362,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                         for (Metadata m : metadata) {
                             driveResource = m.getDriveId().asDriveResource();
                             driveResourceClient.delete(driveResource);
+                            driveResourceClient.trash(driveResource);
                         }
                     }
                 }).addOnFailureListener(MonitorizareMainActivity.this, new OnFailureListener() {
@@ -384,10 +390,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
     private void showEmptyDataTextView() {
 
-        if (listOfData.size() > 0) {
+        if (tb.getDataAdapter().getCount() > 0) {
             noDataView.setVisibility(View.GONE);
-
-        } else {
+            } else {
             noDataView.setVisibility(View.VISIBLE);
         }
     }
@@ -427,7 +432,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                     // se creaza un Drive Resource Client
                     driveResourceClient =
                             Drive.getDriveResourceClient(MonitorizareMainActivity.this, GoogleSignIn.getLastSignedInAccount(MonitorizareMainActivity.this));
-                    enableImportIfExistDB();
+                   if(driveResourceClient !=null)
+                   {enableImportSaveIfExistDB();}
                 }
                 break;
            /* case REQUEST_CODE_DATA:
@@ -445,7 +451,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                 if (resultCode == RESULT_OK) {
                     Log.i(TAG, "Copia sa salvat cu succes.");
                     Toast.makeText(MonitorizareMainActivity.this, "Copia sa incarcat cu succes!", Toast.LENGTH_SHORT).show();
-                    enableImportIfExistDB();
+                    enableImportSaveIfExistDB();
                 }
                 break;
 
@@ -532,7 +538,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         int inputTotal = 0;
         int outputTotal = 0;
         int differenceTotal = 0;
-        for (InOut inOut : listOfData) {
+        for (InOut inOut : listOfNewData) {
             inputTotal += inOut.INPUT;
             outputTotal += inOut.OUTPUT;
 
@@ -577,7 +583,14 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             public void onClick(DialogInterface dialog, int which) {
 
                                 final InOut inOut = new InOut();
-
+                                 if(listOfNewData.size() == 0)
+                                 {
+                                    inOut.ID = 0;
+                                 }
+                                 else
+                                 {
+                                     inOut.ID =  listOfNewData.get(listOfNewData.size()-1).ID + 1;
+                                 }
                                 inOut.DATE = dateInput.getText().toString();
                                 inOut.INPUT = Integer.parseInt(primitInput.getText().toString());
                                 inOut.OUTPUT = 0;
@@ -592,10 +605,10 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 } else {
                                     Toast.makeText(MonitorizareMainActivity.this, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
                                 }
-                                dataBaseAccess.open();
-                                listOfData = dataBaseAccess.getAllPosts();
-                                dataBaseAccess.close();
-                                tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfData)));
+                                /*dataBaseAccess.open();
+                                listOfNewData = dataBaseAccess.getAllPosts();
+                                dataBaseAccess.close();*/
+                                tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
 
                                 showEmptyDataTextView();
                                 calculateSumTotal();
@@ -645,6 +658,14 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             public void onClick(DialogInterface dialog, int which) {
 
                                 final InOut inOut = new InOut();
+                                if(listOfNewData.size() == 0)
+                                {
+                                    inOut.ID = 0;
+                                }
+                                else
+                                {
+                                    inOut.ID =  listOfNewData.get(listOfNewData.size()-1).ID + 1;
+                                }
 
                                 inOut.DATE = dateInput.getText().toString();
                                 inOut.OUTPUT = Integer.parseInt(cheltuitInput.getText().toString());
@@ -659,10 +680,10 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 } else {
                                     Toast.makeText(MonitorizareMainActivity.this, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
                                 }
-                                dataBaseAccess.open();
-                                listOfData = dataBaseAccess.getAllPosts();
-                                dataBaseAccess.close();
-                                tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfData)));
+                                /*dataBaseAccess.open();
+                                listOfNewData = dataBaseAccess.getAllPosts();
+                                dataBaseAccess.close();*/
+                                tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
 
                                 showEmptyDataTextView();
                                 calculateSumTotal();
@@ -712,6 +733,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         return true;
     }
 
+    @TargetApi(Build.VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public boolean onOptionsItemSelected(MenuItem menuitem) {
         int id = menuitem.getItemId();
@@ -719,10 +742,12 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         switch (id) {
             case R.id.download_from_GDrive:
                 try {
-                    importFromDrive(query);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
+
+                        importFromDrive();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
                 break;
             case R.id.import_to_drive:
                 saveToDrive();
@@ -736,13 +761,18 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         return super.onOptionsItemSelected(menuitem);
     }
 
-    private void importFromDrive(Query query) throws FileNotFoundException {
+    @TargetApi(Build.VERSION_CODES.O)
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void importFromDrive() throws IOException {
         //database path on the device
 
+
+       /*final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
+        final OutputStream  localFile = new FileOutputStream(inFileName,true);*/
         final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
+        final FileOutputStream  localFile = new FileOutputStream(inFileName,true);
 
-        final OutputStream fis = new FileOutputStream(inFileName);
-
+        //final int[] last = new int[1];
         driveResourceClient.query(query)
                 .addOnSuccessListener(this, new OnSuccessListener<MetadataBuffer>() {
                     @Override
@@ -756,29 +786,48 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             @Override
                             public Task<Void> then(@NonNull Task<DriveContents> task) throws Exception {
                                 DriveContents contents = task.getResult();
-                                byte[] buffer = new byte[1024];
+                                byte [] buffer = new byte[1024];
                                 int read;
+
                                 InputStream inputStream = contents.getInputStream();
+                               // BufferedWriter br  = new BufferedWriter(localFile);
+
                                 while ((read = inputStream.read(buffer)) != -1) {
-                                    fis.write(buffer, 0, read);
-
+                                    int flags =  Base64.DEFAULT;
+                                    String byteArray = new String (Base64.encode(buffer,flags));
+                                    localFile.write(Base64.decode(byteArray,flags),0,read);
+                                             // br.newLine();
+                                             // br.write(buffer.toString().toCharArray(),0,read);
+                                  // localFile.write(buffer,0,read);
                                 }
+                                localFile.flush();
+                                localFile.close();
 
-                                fis.flush();
-                                fis.close();
                                 inputStream.close();
 
 
                                 final DataBaseAccess dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
                                 dataBaseAccess.open();
-                                listOfData = dataBaseAccess.getAllPosts();
+                                listOfNewData = dataBaseAccess.getAllPosts();
                                 dataBaseAccess.close();
-                                /*for (InOut inOut : listOfData) {
-                                    InOut lastelement = listOfNewData.listIterator().previous();
-                                    listOfNewData.add(inOut);
-                                }*/
 
-                                tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfData)));
+
+                                /*if(listOfNewData.size() >0) {
+
+                                   InOut offlineData = listOfNewData.get(listOfNewData.size() - 1);
+
+                                    for (InOut inOut : listOfData) {
+                                        inOut.ID = inOut.ID + offlineData.ID;
+
+                                        listOfNewData.add(inOut);
+                                    }*/
+                                    tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
+
+                                /*}
+                                else
+                                {
+                                    tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfData)));
+                                }*/
                                 tb.refreshDrawableState();
                                 calculateSumTotal();
 
@@ -791,7 +840,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
 
                     }
-                });
+                })
+       ;
+
     }
 
     private void showDialogEditData(final boolean shouldUpdate, final InOut inOut, final int position) {
@@ -889,9 +940,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                     inOut.DATE = dateInput.getText().toString();
                     inOut.INPUT = (inputText[0] == null ? 0 : Integer.parseInt(inputText[0]));
                     inOut.OUTPUT = (outputText[0] == null ? 0 : Integer.parseInt(outputText[0]));
+
                     listOfNewData.get(position);
-                    listOfNewData.remove(inOut);
-                    listOfNewData.add(inOut);
+                    listOfNewData.set(position,inOut);
 
                     updateData(inOut, position);
                     calculateSumTotal();
