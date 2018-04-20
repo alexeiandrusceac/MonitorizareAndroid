@@ -127,7 +127,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
     private static final String TAG = "Google Drive Activity";
     private static final int REQUEST_CODE_SIGNIN = 0;
-    private static final int REQUEST_CODE_DATA = 1;
+    // private static final int REQUEST_CODE_DATA = 1;
     private static final int REQUEST_CODE_CREATOR = 2;
     private boolean buttonOpen = false;
     private TextView inputTotalView;
@@ -153,13 +153,13 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     private TextView textViewInput, textViewOutput;
     private BroadcastReceiver broadcastReceiver;
     private Query query;
+    static IntentFilter intentFilter = new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_monitorizare_main);
         query = new Query.Builder().addFilter(Filters.and(Filters.eq(SearchableField.MIME_TYPE, "application/db"), Filters.eq(SearchableField.TITLE, "MonitorizareDB.db"))).build();
-
         noDataView = (TextView) findViewById(R.id.noDataView);
 
         inputTotalView = (TextView) findViewById(R.id.totalInput);
@@ -247,20 +247,18 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
     public void enableImportSaveIfExistDB() {
         final MenuItem downloadFromDrive = mainMenu.findItem(R.id.download_from_GDrive);
-            MenuItem saveToDrive = mainMenu.findItem(R.id.import_to_drive);
+        MenuItem saveToDrive = mainMenu.findItem(R.id.import_to_drive);
         driveResourceClient.query(query)
                 .addOnSuccessListener(this, new OnSuccessListener<MetadataBuffer>() {
                     @Override
                     public void onSuccess(MetadataBuffer metadata) {
-                if(metadata.getCount() > 0) {
-                    downloadFromDrive.setEnabled(true);
-                }
-                else
-                {
-                    downloadFromDrive.setEnabled(false);
-                }
-            }
-        });
+                        if (metadata.getCount() > 0) {
+                            downloadFromDrive.setEnabled(true);
+                        } else {
+                            downloadFromDrive.setEnabled(false);
+                        }
+                    }
+                });
         saveToDrive.setEnabled(true);
 
     }
@@ -305,10 +303,21 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
     @Override
     protected void onPause() {
+        //unregisterReceiver(broadcastReceiver);
         super.onPause();
+
 
     }
 
+    @Override
+    protected void onResume() {
+        //registerReceiver(broadcastReceiver,intentFilter);
+        super.onResume();
+
+
+    }
+
+    /*GOOGLE DRIVE API ACTIONS*/
     @SuppressLint("RestrictedApi")
     private void SignIn() {
         Log.i(TAG, "Logheaza - te");
@@ -324,6 +333,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
         return GoogleSignIn.getClient(this, signInOptions);
     }
+
+    /*GOOGLE DRIVE API ACTIONS*/
 
 
     public void saveToDrive() {
@@ -392,7 +403,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
         if (tb.getDataAdapter().getCount() > 0) {
             noDataView.setVisibility(View.GONE);
-            } else {
+        } else {
             noDataView.setVisibility(View.VISIBLE);
         }
     }
@@ -432,19 +443,11 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                     // se creaza un Drive Resource Client
                     driveResourceClient =
                             Drive.getDriveResourceClient(MonitorizareMainActivity.this, GoogleSignIn.getLastSignedInAccount(MonitorizareMainActivity.this));
-                   if(driveResourceClient !=null)
-                   {enableImportSaveIfExistDB();}
+                    if (driveResourceClient != null) {
+                        enableImportSaveIfExistDB();
+                    }
                 }
                 break;
-           /* case REQUEST_CODE_DATA:
-                if(requestCode == RESULT_OK){
-                    DriveId driveId = data.getParcelableExtra(
-                            OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID);
-                    //Toast.makeText(this, driveId.toString(), Toast.LENGTH_SHORT).show();
-                    DriveFile file = driveId.asDriveFile();
-
-                }
-                break;*/
 
             case REQUEST_CODE_CREATOR:
                 // Se apeleaza dupa ce se salveaza in Drive.
@@ -583,14 +586,11 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             public void onClick(DialogInterface dialog, int which) {
 
                                 final InOut inOut = new InOut();
-                                 if(listOfNewData.size() == 0)
-                                 {
+                                if (listOfNewData.size() == 0) {
                                     inOut.ID = 0;
-                                 }
-                                 else
-                                 {
-                                     inOut.ID =  listOfNewData.get(listOfNewData.size()-1).ID + 1;
-                                 }
+                                } else {
+                                    inOut.ID = listOfNewData.get(listOfNewData.size() - 1).ID + 1;
+                                }
                                 inOut.DATE = dateInput.getText().toString();
                                 inOut.INPUT = Integer.parseInt(primitInput.getText().toString());
                                 inOut.OUTPUT = 0;
@@ -649,7 +649,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
             dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
         }
 
-        final AlertDialog dialog = new AlertDialog.Builder(MonitorizareMainActivity.this)
+        new AlertDialog.Builder(MonitorizareMainActivity.this)
                 .setView(formView)
                 .setCancelable(false)
                 .setPositiveButton("Adauga",
@@ -658,13 +658,10 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             public void onClick(DialogInterface dialog, int which) {
 
                                 final InOut inOut = new InOut();
-                                if(listOfNewData.size() == 0)
-                                {
+                                if (listOfNewData.size() == 0) {
                                     inOut.ID = 0;
-                                }
-                                else
-                                {
-                                    inOut.ID =  listOfNewData.get(listOfNewData.size()-1).ID + 1;
+                                } else {
+                                    inOut.ID = listOfNewData.get(listOfNewData.size() - 1).ID + 1;
                                 }
 
                                 inOut.DATE = dateInput.getText().toString();
@@ -742,11 +739,10 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         switch (id) {
             case R.id.download_from_GDrive:
                 try {
-
-                        importFromDrive();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    importFromDrive();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
                 break;
             case R.id.import_to_drive:
@@ -765,12 +761,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void importFromDrive() throws IOException {
         //database path on the device
-
-
-       /*final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
-        final OutputStream  localFile = new FileOutputStream(inFileName,true);*/
-        final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
-        final FileOutputStream  localFile = new FileOutputStream(inFileName,true);
+        final File inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME);
+        final FileWriter localFile = new FileWriter(inFileName, true);
 
         //final int[] last = new int[1];
         driveResourceClient.query(query)
@@ -786,19 +778,15 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             @Override
                             public Task<Void> then(@NonNull Task<DriveContents> task) throws Exception {
                                 DriveContents contents = task.getResult();
-                                byte [] buffer = new byte[1024];
+                                byte[] buffer = new byte[1024];
                                 int read;
 
                                 InputStream inputStream = contents.getInputStream();
-                               // BufferedWriter br  = new BufferedWriter(localFile);
 
                                 while ((read = inputStream.read(buffer)) != -1) {
-                                    int flags =  Base64.DEFAULT;
-                                    String byteArray = new String (Base64.encode(buffer,flags));
-                                    localFile.write(Base64.decode(byteArray,flags),0,read);
-                                             // br.newLine();
-                                             // br.write(buffer.toString().toCharArray(),0,read);
-                                  // localFile.write(buffer,0,read);
+
+                                    localFile.write(read);
+
                                 }
                                 localFile.flush();
                                 localFile.close();
@@ -811,23 +799,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 listOfNewData = dataBaseAccess.getAllPosts();
                                 dataBaseAccess.close();
 
+                                tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
 
-                                /*if(listOfNewData.size() >0) {
-
-                                   InOut offlineData = listOfNewData.get(listOfNewData.size() - 1);
-
-                                    for (InOut inOut : listOfData) {
-                                        inOut.ID = inOut.ID + offlineData.ID;
-
-                                        listOfNewData.add(inOut);
-                                    }*/
-                                    tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
-
-                                /*}
-                                else
-                                {
-                                    tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfData)));
-                                }*/
                                 tb.refreshDrawableState();
                                 calculateSumTotal();
 
@@ -841,7 +814,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
                     }
                 })
-       ;
+        ;
 
     }
 
@@ -942,7 +915,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                     inOut.OUTPUT = (outputText[0] == null ? 0 : Integer.parseInt(outputText[0]));
 
                     listOfNewData.get(position);
-                    listOfNewData.set(position,inOut);
+                    listOfNewData.set(position, inOut);
 
                     updateData(inOut, position);
                     calculateSumTotal();
@@ -967,12 +940,12 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
             if (isOnline(context)) {
 
-                // wifi and celular is enabled
+                // wifiul si datele mobile sunt activate
                 Toast.makeText(context, "Este Online", Toast.LENGTH_SHORT).show();
                 SignIn();
 
             } else {
-                // wifi and celular is disabled
+                // wifiul si datele mobile sunt dezactivate
                 Toast.makeText(context, "Nu sunteti online", Toast.LENGTH_SHORT).show();
             }
         }
