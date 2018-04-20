@@ -25,6 +25,7 @@ import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.renderscript.ScriptGroup;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
@@ -55,6 +56,7 @@ import com.example.alexei.monitorizare.R;
 import com.example.alexei.monitorizare.database.DataBaseAccess;
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 
 import java.io.BufferedWriter;
@@ -70,12 +72,15 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.List;
 
 import de.codecrafters.tableview.TableView;
@@ -743,7 +748,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
                 break;
             case R.id.import_to_drive:
                 saveToDrive();
@@ -761,10 +765,11 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void importFromDrive() throws IOException {
         //database path on the device
-        final File inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME);
-        final FileWriter localFile = new FileWriter(inFileName, true);
+        final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
+        final File file = getApplicationContext().getDatabasePath(DATABASE_NAME);
+        final OutputStream localFile = new FileOutputStream(inFileName);
+        //final BufferedWriter bufferedWriter = new BufferedWriter(localFile);
 
-        //final int[] last = new int[1];
         driveResourceClient.query(query)
                 .addOnSuccessListener(this, new OnSuccessListener<MetadataBuffer>() {
                     @Override
@@ -778,26 +783,47 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             @Override
                             public Task<Void> then(@NonNull Task<DriveContents> task) throws Exception {
                                 DriveContents contents = task.getResult();
-                                byte[] buffer = new byte[1024];
-                                int read;
+                                //char[] bufferlocal = new char[1024];
+                                byte[] bufferdrive = new byte[1024];
 
+                                String line;
+                                int lineInput;
+
+                                List<String> listOFBytes = new ArrayList<String>();
+                                List<byte[]> listOFBytes2 = new ArrayList<byte[]>();
+                                //BufferedReader readFile = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(file))))/*contents.getInputStream()*/ ;
+                                /*while ((line =  readFile.readLine()) != null)
+                                {
+                                    listOFBytes.add(line);
+                                }*/
                                 InputStream inputStream = contents.getInputStream();
 
-                                while ((read = inputStream.read(buffer)) != -1) {
 
-                                    localFile.write(read);
-
+                                while((lineInput = inputStream.read(bufferdrive)) != -1)
+                                {
+                                    localFile.write(bufferdrive,0,lineInput/*(listOFBytes.size()-1)+1*/);
                                 }
+                                DataBaseAccess dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
+                                dataBaseAccess.open();
+                                listOfData = dataBaseAccess.getAllPosts();
+                                dataBaseAccess.close();
+
+                                listOfNewData.addAll((listOfNewData.size()-1)+1,listOfData);
+
+                                DataBaseAccess dataBaseAccess2 = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
+                                dataBaseAccess2.open();
+                                for(InOut inout: listOfNewData) {
+
+                                    dataBaseAccess2.insertData(inout);
+                                }
+                                dataBaseAccess2.close();
                                 localFile.flush();
                                 localFile.close();
 
                                 inputStream.close();
 
 
-                                final DataBaseAccess dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
-                                dataBaseAccess.open();
-                                listOfNewData = dataBaseAccess.getAllPosts();
-                                dataBaseAccess.close();
+
 
                                 tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
 
