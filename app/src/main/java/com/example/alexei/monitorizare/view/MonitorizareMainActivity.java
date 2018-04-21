@@ -25,6 +25,7 @@ import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.ContactsContract;
 import android.renderscript.ScriptGroup;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
@@ -138,10 +139,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     private TextView inputTotalView;
     private TextView outputTotalView;
     private TextView differenceTotalView;
-    private List<InOut> listOfData = new ArrayList<>();
     private List<InOut> listOfNewData = new ArrayList<>();
     DataBaseAccess dataBaseAccess;
-
+    private boolean backupDone;
     private TextView noDataView;
     private TableView<String[]> tb;
     private TableHelper tableHelper;
@@ -152,6 +152,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     private static String[] PERMISSIONS_STORAGE = {
             Manifest.permission.READ_EXTERNAL_STORAGE
     };
+    private MenuItem downloadFromDrive;
     /// Floating Action Buttons
     private FloatingActionButton buttonAdd, buttonInput, buttonOutput;
     private Animation button_open, button_close, button_forward, button_backward;
@@ -181,23 +182,13 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         textViewOutput = (TextView) findViewById(R.id.outputTextFAB);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        if (fromExternalSource) {
-            // Check the external database file. External database must be available for the first time deployment.
-            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DATABASE_NAME);
-            if (!dbFile.exists()) {
-                return;
-            }
-            // If external database is avaliable, deploy it
-            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, externalDirectory);
-        } else {
-            // From assets
-            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
-        }
 
+        checkExternalStorage();
         dataBaseAccess.open();
         listOfNewData = dataBaseAccess.getAllPosts();
         dataBaseAccess.close();
+
+        enableImportSaveIfExistDB();
 
         if (fromExternalSource && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
@@ -235,7 +226,22 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         super.onDestroy();
         unregisterNetworkChanges();
     }
-
+    private void checkExternalStorage()
+    {
+        if (fromExternalSource) {
+            // Check the external database file. External database must be available for the first time deployment.
+            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
+            File dbFile = new File(externalDirectory, DATABASE_NAME);
+            if (!dbFile.exists()) {
+                return;
+            }
+            // If external database is avaliable, deploy it
+            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, externalDirectory);
+        } else {
+            // From assets
+            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
+        }
+    }
     private void registerNetworkBroadcast() {
 
         registerReceiver(broadcastReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
@@ -251,19 +257,32 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     }
 
     public void enableImportSaveIfExistDB() {
-        final MenuItem downloadFromDrive = mainMenu.findItem(R.id.download_from_GDrive);
+        downloadFromDrive = mainMenu.findItem(R.id.download_from_GDrive);
         MenuItem saveToDrive = mainMenu.findItem(R.id.import_to_drive);
         driveResourceClient.query(query)
                 .addOnSuccessListener(this, new OnSuccessListener<MetadataBuffer>() {
                     @Override
                     public void onSuccess(MetadataBuffer metadata) {
                         if (metadata.getCount() > 0) {
+                            downloadFromDrive.setVisible(true);
                             downloadFromDrive.setEnabled(true);
+                            if(backupDone == false)
+                            {
+                                buttonAdd.setVisibility(View.INVISIBLE);
+                                downloadFromDrive.setVisible(true);
+                            }
+                            else
+                            {
+                                buttonAdd.setVisibility(View.VISIBLE);
+                                downloadFromDrive.setVisible(false);
+                            }
                         } else {
-                            downloadFromDrive.setEnabled(false);
+                            downloadFromDrive.setVisible(false);
+                                buttonAdd.setVisibility(View.VISIBLE);
                         }
                     }
                 });
+        saveToDrive.setVisible(true);
         saveToDrive.setEnabled(true);
 
     }
@@ -417,7 +436,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
         CharSequence colors[] = new CharSequence[]{"Editare", "Stergere"};
 
-        final AlertDialog builder = new AlertDialog.Builder(MonitorizareMainActivity.this)
+        new AlertDialog.Builder(MonitorizareMainActivity.this)
                 .setTitle("Alegeti optiunea")
                 .setItems(colors,
                         new DialogInterface.OnClickListener() {
@@ -425,7 +444,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             public void onClick(DialogInterface dialog, int which) {
                                 if (which == 0) {
 
-                                    showDialogEditData(true, listOfData.get(position), position);
+                                    showDialogEditData(true, listOfNewData.get(position), position);
                                 } else {
                                     deleteData(position);
                                 }
@@ -469,7 +488,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     private void updateData(InOut inOut, int position) {
 
         final DataBaseAccess dataBaseAccess;
-        InOut data = listOfData.get(position);
+        InOut data = listOfNewData.get(position);
         data.DATE = inOut.DATE;
         data.INPUT = inOut.INPUT;
         data.OUTPUT = inOut.OUTPUT;
@@ -501,31 +520,19 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         }
 
         // se reincarca lista de date
-        listOfData.set(position, data);
+        listOfNewData.set(position, data);
 
-        tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
+        tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfNewData)));
         tb.refreshDrawableState();
         showEmptyDataTextView();
     }
 
     private void deleteData(int position) {
-        DataBaseAccess dataBaseAccess;
-        if (fromExternalSource) {
-            // Se verifica baza de date externa. Baza de date externa trebuie sa fie accesibila pentru prima lansare.
-            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DATABASE_NAME);
-            if (!dbFile.exists()) {
-                return;
-            }
-            // Daca baza de date externa  este accesibila, atunci se lanseaza
-            dataBaseAccess = DataBaseAccess.getInstance(this, externalDirectory);
-        } else {
-            // Daca nu este accesibila atunci se lanseaza din mapa Assets
-            dataBaseAccess = DataBaseAccess.getInstance(this, null);
-        }
+
+        checkExternalStorage();
         // stergerea inregistrarii din baza de date
         dataBaseAccess.open();
-        boolean deleteSucces = dataBaseAccess.deleteData(listOfData.get(position));
+        boolean deleteSucces = dataBaseAccess.deleteData(listOfNewData.get(position));
 
         dataBaseAccess.close();
         if (deleteSucces) {
@@ -534,9 +541,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
             Toast.makeText(MonitorizareMainActivity.this, "Nu sa sters informatia", Toast.LENGTH_SHORT).show();
         }
 
-        listOfData.remove(position);
+        listOfNewData.remove(position);
 
-        tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfData)));
+        tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfNewData)));
         tb.refreshDrawableState();
         calculateSumTotal();
         showEmptyDataTextView();
@@ -567,22 +574,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
         final EditText dateInput = setDate(formView);
 
+        checkExternalStorage();
 
-        if (fromExternalSource) {
-            //Se verifica baza de date externa. Baza de date externa trebuie sa fie accesibila pentru prima lansare.
-            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DATABASE_NAME);
-            if (!dbFile.exists()) {
-                return;
-            }
-            // Daca baza de date externa  este accesibila, atunci se lanseaza
-            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, externalDirectory);
-        } else {
-            // Daca nu este accesibila atunci se lanseaza din mapa Assets
-            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
-        }
-
-        final AlertDialog dialog = new AlertDialog.Builder(MonitorizareMainActivity.this)
+        new AlertDialog.Builder(MonitorizareMainActivity.this)
                 .setView(formView)
                 .setCancelable(false)
                 .setPositiveButton("Adauga",
@@ -602,17 +596,10 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 listOfNewData.add(inOut);
 
                                 dataBaseAccess.open();
-                                boolean addSucces = dataBaseAccess.insertData(inOut);
+                                dataBaseAccess.insertData(MonitorizareMainActivity.this,listOfNewData);
 
                                 dataBaseAccess.close();
-                                if (addSucces) {
-                                    Toast.makeText(MonitorizareMainActivity.this, "Informatia sa adaugat cu succes", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    Toast.makeText(MonitorizareMainActivity.this, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
-                                }
-                                /*dataBaseAccess.open();
-                                listOfNewData = dataBaseAccess.getAllPosts();
-                                dataBaseAccess.close();*/
+
                                 tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
 
                                 showEmptyDataTextView();
@@ -631,7 +618,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     }
 
     private void showDialogInsertDataOutput() {
-        final DataBaseAccess dataBaseAccess;
 
         LayoutInflater layoutInflater = (LayoutInflater) MonitorizareMainActivity.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         final View formView = layoutInflater.inflate(R.layout.data_dialog_output, null, false);
@@ -639,20 +625,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         final EditText cheltuitInput = (EditText) formView.findViewById(R.id.outputText);
         final EditText dateInput = setDate(formView);
 
-
-        if (fromExternalSource) {
-            //Se verifica baza de date externa. Baza de date externa trebuie sa fie accesibila pentru prima lansare.
-            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DATABASE_NAME);
-            if (!dbFile.exists()) {
-                return;
-            }
-            // Daca baza de date externa  este accesibila, atunci se lanseaza
-            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, externalDirectory);
-        } else {
-            // Daca nu este accesibila atunci se lanseaza din mapa Assets
-            dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
-        }
+        checkExternalStorage();
 
         new AlertDialog.Builder(MonitorizareMainActivity.this)
                 .setView(formView)
@@ -674,17 +647,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 inOut.INPUT = 0;
                                 listOfNewData.add(inOut);
                                 dataBaseAccess.open();
-                                boolean addSucces = dataBaseAccess.insertData(inOut);
+                                dataBaseAccess.insertData(MonitorizareMainActivity.this,listOfNewData);
 
                                 dataBaseAccess.close();
-                                if (addSucces) {
-                                    Toast.makeText(MonitorizareMainActivity.this, "Informatia sa adaugat cu succes", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    Toast.makeText(MonitorizareMainActivity.this, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
-                                }
-                                /*dataBaseAccess.open();
-                                listOfNewData = dataBaseAccess.getAllPosts();
-                                dataBaseAccess.close();*/
                                 tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
 
                                 showEmptyDataTextView();
@@ -766,10 +731,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     private void importFromDrive() throws IOException {
         //database path on the device
         final String inFileName = getApplicationContext().getDatabasePath(DATABASE_NAME).toString();
-        final File file = getApplicationContext().getDatabasePath(DATABASE_NAME);
         final OutputStream localFile = new FileOutputStream(inFileName);
-        //final BufferedWriter bufferedWriter = new BufferedWriter(localFile);
-
+        final DataBaseAccess dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this,null);
         driveResourceClient.query(query)
                 .addOnSuccessListener(this, new OnSuccessListener<MetadataBuffer>() {
                     @Override
@@ -783,51 +746,32 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             @Override
                             public Task<Void> then(@NonNull Task<DriveContents> task) throws Exception {
                                 DriveContents contents = task.getResult();
-                                //char[] bufferlocal = new char[1024];
                                 byte[] bufferdrive = new byte[1024];
-
-                                String line;
-                                int lineInput;
-
-                                List<String> listOFBytes = new ArrayList<String>();
-                                List<byte[]> listOFBytes2 = new ArrayList<byte[]>();
-                                //BufferedReader readFile = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(file))))/*contents.getInputStream()*/ ;
-                                /*while ((line =  readFile.readLine()) != null)
-                                {
-                                    listOFBytes.add(line);
-                                }*/
                                 InputStream inputStream = contents.getInputStream();
+                                int line;
 
-
-                                while((lineInput = inputStream.read(bufferdrive)) != -1)
+                                while((line = inputStream.read(bufferdrive)) !=-1)
                                 {
-                                    localFile.write(bufferdrive,0,lineInput/*(listOFBytes.size()-1)+1*/);
+                                    localFile.write(bufferdrive,0,line);
                                 }
-                                DataBaseAccess dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
-                                dataBaseAccess.open();
-                                listOfData = dataBaseAccess.getAllPosts();
-                                dataBaseAccess.close();
 
-                                listOfNewData.addAll((listOfNewData.size()-1)+1,listOfData);
-
-                                DataBaseAccess dataBaseAccess2 = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
-                                dataBaseAccess2.open();
-                                for(InOut inout: listOfNewData) {
-
-                                    dataBaseAccess2.insertData(inout);
-                                }
-                                dataBaseAccess2.close();
                                 localFile.flush();
                                 localFile.close();
 
                                 inputStream.close();
+                                dataBaseAccess.open();
+                                listOfNewData = dataBaseAccess.getAllPosts();
+                                dataBaseAccess.close();
 
-
-
+                                backupDone = true;
+                                //downloadFromDrive.setVisible(false);
+                                //buttonAdd.setVisibility(View.VISIBLE);
+                                enableImportSaveIfExistDB();
 
                                 tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
 
                                 tb.refreshDrawableState();
+
                                 calculateSumTotal();
 
                                 Toast.makeText(MonitorizareMainActivity.this, "Incarcarea datelor sa efectuat cu succes", Toast.LENGTH_SHORT).show();
@@ -837,17 +781,14 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
                         });
 
-
                     }
-                })
-        ;
-
-    }
+                });
+     }
 
     private void showDialogEditData(final boolean shouldUpdate, final InOut inOut, final int position) {
         final LayoutInflater layoutInflaterAndroid = LayoutInflater.from(getApplicationContext());
         final View view;
-        final DataBaseAccess dataBaseAccess;
+
         final String[] inputText = new String[1];
         final String[] outputText = new String[1];
         final EditText output;
@@ -874,20 +815,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         AlertDialog.Builder alertDialogBuilderUserInput = new AlertDialog.Builder(MonitorizareMainActivity.this);
         alertDialogBuilderUserInput.setView(view);
 
-
-        if (fromExternalSource) {
-            // Se verifica baza de date externa. Baza de date externa trebuie sa fie accesibila pentru prima lansare.
-            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DATABASE_NAME);
-            if (!dbFile.exists()) {
-                return;
-            }
-            // Daca baza de date externa  este accesibila, atunci se lanseaza
-            dataBaseAccess = DataBaseAccess.getInstance(this, externalDirectory);
-        } else {
-            // Daca nu este accesibila atunci se lanseaza din mapa Assets
-            dataBaseAccess = DataBaseAccess.getInstance(this, null);
-        }
+        checkExternalStorage();
 
         if (shouldUpdate && inOut != null) {
             dateInput.setText(String.valueOf(inOut.DATE));
@@ -946,13 +874,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                     updateData(inOut, position);
                     calculateSumTotal();
 
-                } else {
-                    // creaza o inregistrare noua
-                    dataBaseAccess.open();
-                    dataBaseAccess.insertData(inOut);
-                    dataBaseAccess.close();
-                    calculateSumTotal();
-
                 }
             }
         });
@@ -972,6 +893,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
             } else {
                 // wifiul si datele mobile sunt dezactivate
+
                 Toast.makeText(context, "Nu sunteti online", Toast.LENGTH_SHORT).show();
             }
         }

@@ -33,9 +33,11 @@ public class DataBaseAccess {
      * @param context
      * @param sourceDirectory
      */
+
     private DataBaseAccess(Context context, String sourceDirectory) {
         if (sourceDirectory == null) {
             this.openHelper = new DataBaseHelper(context);
+
         } else {
             this.openHelper = new DataBaseHelper(context, sourceDirectory);
         }
@@ -104,10 +106,11 @@ public class DataBaseAccess {
 
         database.update("InOutTable", values, "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
         database.close();
-        if(database == null)
-        {return false;}
-        else
-        {return true;}
+        if (database == null) {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     public boolean deleteData(InOut inOut) {
@@ -119,21 +122,28 @@ public class DataBaseAccess {
             return false;
         }
     }
+    public void  deleteAll()
+    {
+        database.delete("InOutTable",null,null);
+        database.close();
+    }
 
-
-    public boolean insertData(InOut inOut) {
+    public void insertData(Context context, List<InOut> listofinOut) {
         ContentValues values = new ContentValues();
 
-        values.put("Date", inOut.DATE);
-        values.put("Input", inOut.INPUT);
-        values.put("Output", inOut.OUTPUT);
+        for (InOut inOut : listofinOut) {
+            values.put("ID",(listofinOut.size()-1)+1);
+            values.put("Date", inOut.DATE);
+            values.put("Input", inOut.INPUT);
+            values.put("Output", inOut.OUTPUT);
 
-        database.insert("InOutTable", null, values);
+            database.insert("InOutTable", null, values);
+        }
         database.close();
-        if (database == null) {
-            return false;
+        if (database != null) {
+            Toast.makeText(context, "Informatia sa adaugat cu succes", Toast.LENGTH_SHORT).show();
         } else {
-            return true;
+            Toast.makeText(context, "Nu sa adaugat informatia", Toast.LENGTH_SHORT).show();
         }
     }
 
