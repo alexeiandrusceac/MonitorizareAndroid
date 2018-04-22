@@ -7,27 +7,28 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
-
-import android.content.BroadcastReceiver;
+/*
+import android.app.DownloadManager;
+import android.content.BroadcastReceiver;*/
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
+/*import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.IntentSender;
+import android.content.IntentSender;*/
 import android.content.pm.PackageManager;
 
 import android.graphics.Color;
-
+/*
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-
+*/
 
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
+import android.os.Environment;/*
 import android.provider.ContactsContract;
 import android.renderscript.ScriptGroup;
-import android.support.annotation.NonNull;
+import android.support.annotation.NonNull;*/
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
@@ -35,9 +36,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.text.TextUtils;
-import android.util.Base64;
+/*import android.util.Base64;
 import android.util.Log;
-
+*/
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -56,12 +57,13 @@ import android.widget.Toast;
 import com.example.alexei.monitorizare.R;
 import com.example.alexei.monitorizare.database.DataBaseAccess;
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
-
+/*
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 
-import java.io.BufferedWriter;
+import java.io.BufferedWriter;*/
 import java.io.File;
+/*
 import java.io.FileInputStream;
 
 import java.io.FileOutputStream;
@@ -78,10 +80,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.StandardOpenOption;*/
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
+//import java.util.Collection;
 import java.util.List;
 
 import de.codecrafters.tableview.TableView;
@@ -95,7 +97,7 @@ import static com.example.alexei.monitorizare.database.DataBaseHelper.DATABASE_N
 
 
 // Google Play Services
-
+/*
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -123,57 +125,57 @@ import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-
+*/
 
 public class MonitorizareMainActivity extends AppCompatActivity implements View.OnClickListener {
-    private DriveResourceClient driveResourceClient;
-    private DriveClient driveClient;
-    private DriveResource driveResource;
-    private GoogleSignInClient mGoogleSignIn;
+    //private DriveResourceClient driveResourceClient;
+    //private DriveClient driveClient;
+    //private DriveResource driveResource;
+    //private GoogleSignInClient mGoogleSignIn;
 
-    private static final String TAG = "Google Drive Activity";
-    private static final int REQUEST_CODE_SIGNIN = 0;
+    //private static final String TAG = "Google Drive Activity";
+    //private static final int REQUEST_CODE_SIGNIN = 0;
     // private static final int REQUEST_CODE_DATA = 1;
-    private static final int REQUEST_CODE_CREATOR = 2;
+    //private static final int REQUEST_CODE_CREATOR = 2;
     private boolean buttonOpen = false;
     private TextView inputTotalView;
     private TextView outputTotalView;
     private TextView differenceTotalView;
     private List<InOut> listOfNewData = new ArrayList<>();
     DataBaseAccess dataBaseAccess;
-    private boolean backupDone;
+    //private boolean backupDone;
     private TextView noDataView;
     private TableView<String[]> tb;
     private TableHelper tableHelper;
     private Menu mainMenu;
+   // private MenuItem getFromDrive;
     DatePickerDialog datepicker;
     private final boolean fromExternalSource = false;
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
     private static String[] PERMISSIONS_STORAGE = {
             Manifest.permission.READ_EXTERNAL_STORAGE
     };
-    private MenuItem downloadFromDrive;
     /// Floating Action Buttons
     private FloatingActionButton buttonAdd, buttonInput, buttonOutput;
     private Animation button_open, button_close, button_forward, button_backward;
     private TextView textViewInput, textViewOutput;
-    private BroadcastReceiver broadcastReceiver;
-    private Query query;
-    static IntentFilter intentFilter = new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE");
+    //private BroadcastReceiver broadcastReceiver;
+    //private DownloadManager.Query query;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_monitorizare_main);
-        query = new Query.Builder().addFilter(Filters.and(Filters.eq(SearchableField.MIME_TYPE, "application/db"), Filters.eq(SearchableField.TITLE, "MonitorizareDB.db"))).build();
+        /*query = new Query.Builder().addFilter(Filters.and(Filters.eq(SearchableField.MIME_TYPE, "application/db"),
+                Filters.eq(SearchableField.TITLE, "MonitorizareDB.db"))).build();*/
         noDataView = (TextView) findViewById(R.id.noDataView);
 
         inputTotalView = (TextView) findViewById(R.id.totalInput);
         outputTotalView = (TextView) findViewById(R.id.totalOutput);
         differenceTotalView = (TextView) findViewById(R.id.totalDifferenta);
 
-        broadcastReceiver = new MyBroadcastReceiver();
-        registerNetworkBroadcast();
+        //broadcastReceiver = new MyBroadcastReceiver();
+        //registerNetworkBroadcast();
         buttonAdd = (FloatingActionButton) findViewById(R.id.buttonFloating);
         buttonInput = (FloatingActionButton) findViewById(R.id.buttonFloatingPrimit);
         buttonOutput = (FloatingActionButton) findViewById(R.id.buttonFloatingCheltuit);
@@ -187,8 +189,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         dataBaseAccess.open();
         listOfNewData = dataBaseAccess.getAllPosts();
         dataBaseAccess.close();
-
-        enableImportSaveIfExistDB();
 
         if (fromExternalSource && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
@@ -224,7 +224,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     @Override
     public void onDestroy() {
         super.onDestroy();
-        unregisterNetworkChanges();
+        //unregisterNetworkChanges();
     }
     private void checkExternalStorage()
     {
@@ -242,7 +242,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
             dataBaseAccess = DataBaseAccess.getInstance(MonitorizareMainActivity.this, null);
         }
     }
-    private void registerNetworkBroadcast() {
+    /*private void registerNetworkBroadcast() {
 
         registerReceiver(broadcastReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
 
@@ -257,7 +257,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     }
 
     public void enableImportSaveIfExistDB() {
-        downloadFromDrive = mainMenu.findItem(R.id.download_from_GDrive);
+       final MenuItem  downloadFromDrive = mainMenu.findItem(R.id.download_from_GDrive);
+        getFromDrive = downloadFromDrive;
         MenuItem saveToDrive = mainMenu.findItem(R.id.import_to_drive);
         driveResourceClient.query(query)
                 .addOnSuccessListener(this, new OnSuccessListener<MetadataBuffer>() {
@@ -283,9 +284,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                     }
                 });
         saveToDrive.setVisible(true);
-        saveToDrive.setEnabled(true);
-
-    }
+        }*/
 
     @Override
     public void onClick(View view) {
@@ -325,24 +324,31 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         }
     }
 
-    @Override
+    /*@Override
     protected void onPause() {
-        //unregisterReceiver(broadcastReceiver);
+        try {
+            unregisterReceiver(broadcastReceiver);
+        }
+        catch (IOException ex)
+        {
+
+        }
         super.onPause();
+*/
 
 
-    }
-
+/*
     @Override
     protected void onResume() {
-        //registerReceiver(broadcastReceiver,intentFilter);
+       // registerReceiver(broadcastReceiver,new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+
         super.onResume();
 
 
     }
-
+*/
     /*GOOGLE DRIVE API ACTIONS*/
-    @SuppressLint("RestrictedApi")
+    /*@SuppressLint("RestrictedApi")
     private void SignIn() {
         Log.i(TAG, "Logheaza - te");
         mGoogleSignIn = buildGoogleSignInClient();
@@ -358,7 +364,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         return GoogleSignIn.getClient(this, signInOptions);
     }
 
-    /*GOOGLE DRIVE API ACTIONS*/
+
 
 
     public void saveToDrive() {
@@ -372,14 +378,14 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                 FileInputStream fis = new FileInputStream(dbFile);
                 OutputStream outputStream = task.getResult().getOutputStream();
 
-                // Transfer bytes from the inputfile to the outputfile
+                 Transfer bytes from the inputfile to the outputfile
                 final byte[] buffer = new byte[1024];
                 int length;
                 while ((length = fis.read(buffer)) > 0) {
                     outputStream.write(buffer, 0, length);
                 }
 
-                //drive file metadata
+                drive file metadata
                 final MetadataChangeSet metadataChangeSet = new MetadataChangeSet.Builder()
                         .setTitle("MonitorizareDB.db")
                         .setMimeType("application/db")
@@ -420,7 +426,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 });
             }
         });
-    }
+    }*/
 
 
     private void showEmptyDataTextView() {
@@ -453,7 +459,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
     }
 
-    @Override
+   /* @Override
     protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
         MonitorizareMainActivity.super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
@@ -483,41 +489,23 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                 break;
 
         }
-    }
+    }*/
 
     private void updateData(InOut inOut, int position) {
 
-        final DataBaseAccess dataBaseAccess;
+
         InOut data = listOfNewData.get(position);
         data.DATE = inOut.DATE;
         data.INPUT = inOut.INPUT;
         data.OUTPUT = inOut.OUTPUT;
 
-        if (fromExternalSource) {
-            // Se verifica baza de date externa. Baza de date externa trebuie sa fie accesibila pentru prima lansare.
-            String externalDirectory = Environment.getExternalStorageDirectory().getAbsolutePath() + "/database";
-            File dbFile = new File(externalDirectory, DATABASE_NAME);
-            if (!dbFile.exists()) {
-                return;
-            }
-            // Daca baza de date externa  este accesibila, atunci se lanseaza
-            dataBaseAccess = DataBaseAccess.getInstance(this, externalDirectory);
-        } else {
-            // Daca nu este accesibila atunci se lanseaza din mapa Assets
-            dataBaseAccess = DataBaseAccess.getInstance(this, null);
-        }
+        checkExternalStorage();
 
         dataBaseAccess.open();
 
         // actualizarea inregistrarii in baza de date
-        boolean updateSuccess = dataBaseAccess.updateData(data);
+        dataBaseAccess.updateData(MonitorizareMainActivity.this,data);
         dataBaseAccess.close();
-        if (updateSuccess) {
-            Toast.makeText(MonitorizareMainActivity.this, "Informatia sa actualizat cu succes", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(MonitorizareMainActivity.this, "Nu sa actualizat informatia", Toast.LENGTH_SHORT).show();
-
-        }
 
         // se reincarca lista de date
         listOfNewData.set(position, data);
@@ -532,14 +520,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         checkExternalStorage();
         // stergerea inregistrarii din baza de date
         dataBaseAccess.open();
-        boolean deleteSucces = dataBaseAccess.deleteData(listOfNewData.get(position));
+        dataBaseAccess.deleteData(MonitorizareMainActivity.this,listOfNewData.get(position));
 
         dataBaseAccess.close();
-        if (deleteSucces) {
-            Toast.makeText(MonitorizareMainActivity.this, "Informatia sa sters cu succes", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(MonitorizareMainActivity.this, "Nu sa sters informatia", Toast.LENGTH_SHORT).show();
-        }
 
         listOfNewData.remove(position);
 
@@ -584,9 +567,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             public void onClick(DialogInterface dialog, int which) {
 
                                 final InOut inOut = new InOut();
-                                if (listOfNewData.size() == 0) {
-                                    inOut.ID = 0;
-                                } else {
+                                if (listOfNewData.size() > 0) {
+
                                     inOut.ID = listOfNewData.get(listOfNewData.size() - 1).ID + 1;
                                 }
                                 inOut.DATE = dateInput.getText().toString();
@@ -595,7 +577,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 listOfNewData.add(inOut);
 
                                 dataBaseAccess.open();
-                                dataBaseAccess.insertData(MonitorizareMainActivity.this,listOfNewData);
+                                dataBaseAccess.insertData(MonitorizareMainActivity.this,inOut);
 
                                 dataBaseAccess.close();
 
@@ -635,8 +617,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                             public void onClick(DialogInterface dialog, int which) {
 
                                 final InOut inOut = new InOut();
-                                if (listOfNewData.size() == 0) {
-                                    inOut.ID = 0;
+                                if (listOfNewData.size() > 0) {
+                                    inOut.ID = 1;
                                 } else {
                                     inOut.ID = listOfNewData.get(listOfNewData.size() - 1).ID + 1;
                                 }
@@ -646,7 +628,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 inOut.INPUT = 0;
                                 listOfNewData.add(inOut);
                                 dataBaseAccess.open();
-                                dataBaseAccess.insertData(MonitorizareMainActivity.this,listOfNewData);
+                                dataBaseAccess.insertData(MonitorizareMainActivity.this,inOut);
 
                                 dataBaseAccess.close();
                                 tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
@@ -706,7 +688,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         int id = menuitem.getItemId();
 
         switch (id) {
-            case R.id.download_from_GDrive:
+            /*case R.id.download_from_GDrive:
                 try {
                     importFromDrive();
                 } catch (IOException e) {
@@ -715,7 +697,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                 break;
             case R.id.import_to_drive:
                 saveToDrive();
-                break;
+                break;*/
             case R.id.exit_from_App:
                 System.exit(1);
                 break;
@@ -725,7 +707,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         return super.onOptionsItemSelected(menuitem);
     }
 
-    @TargetApi(Build.VERSION_CODES.O)
+    /*@TargetApi(Build.VERSION_CODES.O)
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void importFromDrive() throws IOException {
         //database path on the device
@@ -763,8 +745,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                 dataBaseAccess.close();
 
                                 backupDone = true;
-                                //downloadFromDrive.setVisible(false);
-                                //buttonAdd.setVisibility(View.VISIBLE);
                                 enableImportSaveIfExistDB();
 
                                 tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
@@ -782,7 +762,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
                     }
                 });
-     }
+     }*/
 
     private void showDialogEditData(final boolean shouldUpdate, final InOut inOut, final int position) {
         final LayoutInflater layoutInflaterAndroid = LayoutInflater.from(getApplicationContext());
@@ -878,7 +858,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         });
     }
 
-    public class MyBroadcastReceiver extends BroadcastReceiver {
+    /*public class MyBroadcastReceiver extends BroadcastReceiver {
 
         @SuppressLint("RestrictedApi")
         @Override
@@ -892,7 +872,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
             } else {
                 // wifiul si datele mobile sunt dezactivate
-
+                if(driveResourceClient != null)
+                {enableImportSaveIfExistDB();}
                 Toast.makeText(context, "Nu sunteti online", Toast.LENGTH_SHORT).show();
             }
         }
@@ -907,10 +888,5 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                 e.printStackTrace();
                 return false;
             }
-        }
-
-
+        }*/
     }
-
-
-}

@@ -98,47 +98,42 @@ public class DataBaseAccess {
         return list;
     }
 
-    public boolean updateData(InOut inOut) {
+    public void updateData(Context context, InOut inOut) {
         ContentValues values = new ContentValues();
         values.put("Date", inOut.DATE);
         values.put("Input", inOut.INPUT);
         values.put("Output", inOut.OUTPUT);
 
-        database.update("InOutTable", values, "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
-        database.close();
-        if (database == null) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    public boolean deleteData(InOut inOut) {
-        database.delete("InOutTable", "input_ID = ?", new String[]{String.valueOf(inOut.ID)});
+        database.update("InOutTable", values, "ID = ?", new String[]{String.valueOf(inOut.ID)});
         database.close();
         if (database != null) {
-            return true;
+            Toast.makeText(context, "Informatia sa actualizat cu succes", Toast.LENGTH_SHORT).show();
         } else {
-            return false;
+            Toast.makeText(context, "Nu sa actualizat informatia", Toast.LENGTH_SHORT).show();
+
         }
     }
-    public void  deleteAll()
-    {
-        database.delete("InOutTable",null,null);
+
+    public void deleteData(Context context, InOut inOut) {
+        database.delete("InOutTable", "ID = ?", new String[]{String.valueOf(inOut.ID)});
         database.close();
+        if (database != null) {
+            Toast.makeText(context, "Informatia sa sters cu succes", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "Nu sa sters informatia", Toast.LENGTH_SHORT).show();
+        }
     }
 
-    public void insertData(Context context, List<InOut> listofinOut) {
+    public void insertData(Context context, InOut inOut) {
         ContentValues values = new ContentValues();
 
-        for (InOut inOut : listofinOut) {
-            values.put("ID",(listofinOut.size()-1)+1);
-            values.put("Date", inOut.DATE);
-            values.put("Input", inOut.INPUT);
-            values.put("Output", inOut.OUTPUT);
+        values.put("ID", inOut.ID);
+        values.put("Date", inOut.DATE);
+        values.put("Input", inOut.INPUT);
+        values.put("Output", inOut.OUTPUT);
 
-            database.insert("InOutTable", null, values);
-        }
+        database.insert("InOutTable", null, values);
+
         database.close();
         if (database != null) {
             Toast.makeText(context, "Informatia sa adaugat cu succes", Toast.LENGTH_SHORT).show();
