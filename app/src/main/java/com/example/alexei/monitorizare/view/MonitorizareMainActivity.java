@@ -39,6 +39,7 @@ import android.text.TextUtils;
 /*import android.util.Base64;
 import android.util.Log;
 */
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -572,7 +573,14 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                                     inOut.ID = listOfNewData.get(listOfNewData.size() - 1).ID + 1;
                                 }
                                 inOut.DATE = dateInput.getText().toString();
-                                inOut.INPUT = Integer.parseInt(primitInput.getText().toString());
+                                if(primitInput.getText().toString().matches(""))
+                                {
+                                    inOut.INPUT = 0;
+                                }
+                                else
+                                {
+                                    inOut.INPUT = Integer.parseInt(primitInput.getText().toString());
+                                }
                                 inOut.OUTPUT = 0;
                                 listOfNewData.add(inOut);
 
@@ -618,13 +626,19 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
 
                                 final InOut inOut = new InOut();
                                 if (listOfNewData.size() > 0) {
-                                    inOut.ID = 1;
-                                } else {
+
                                     inOut.ID = listOfNewData.get(listOfNewData.size() - 1).ID + 1;
                                 }
 
                                 inOut.DATE = dateInput.getText().toString();
-                                inOut.OUTPUT = Integer.parseInt(cheltuitInput.getText().toString());
+                                if(cheltuitInput.getText().toString().matches(""))
+                                {
+                                    inOut.OUTPUT = 0;
+                                }
+                                else
+                                {
+                                    inOut.OUTPUT =Integer.parseInt(cheltuitInput.getText().toString());
+                                }
                                 inOut.INPUT = 0;
                                 listOfNewData.add(inOut);
                                 dataBaseAccess.open();
@@ -772,13 +786,19 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         final String[] outputText = new String[1];
         final EditText output;
         final EditText input;
-
+        final EditText dateInputSet;
+        final EditText dateOutputSet;
         if (inOut.OUTPUT != 0) {
             view = layoutInflaterAndroid.inflate(R.layout.data_dialog_output, null);
-            output = (EditText) view.findViewById(R.id.outputText);
+            dateOutputSet =  view.findViewById(R.id.dateText);
+            output =  view.findViewById(R.id.outputText);
             output.setText(String.valueOf(inOut.OUTPUT));
             output.setTextColor(Color.BLACK);
             output.setHintTextColor(Color.RED);
+            dateOutputSet.setText(String.valueOf(inOut.DATE));
+            dateOutputSet.setTextColor(Color.BLACK);
+            dateOutputSet.setHintTextColor(Color.RED);
+
 
         } else {
             view = layoutInflaterAndroid.inflate(R.layout.data_dialog_input, null);
@@ -786,10 +806,14 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
             input.setText(String.valueOf(inOut.INPUT));
             input.setTextColor(Color.BLACK);
             input.setHintTextColor(Color.RED);
-
+            dateInputSet = view.findViewById(R.id.dateText);
+            dateInputSet.setText(String.valueOf(inOut.DATE));
+            dateInputSet.setTextColor(Color.BLACK);
+            dateInputSet.setHintTextColor(Color.RED);
 
         }
         final EditText dateInput = setDate(view);
+        final EditText dateOutput = setDate(view);
 
         AlertDialog.Builder alertDialogBuilderUserInput = new AlertDialog.Builder(MonitorizareMainActivity.this);
         alertDialogBuilderUserInput.setView(view);
@@ -797,6 +821,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
         checkExternalStorage();
 
         if (shouldUpdate && inOut != null) {
+
             dateInput.setText(String.valueOf(inOut.DATE));
 
             dateInput.setTextColor(Color.BLACK);
@@ -831,11 +856,22 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
                         Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
                         return;
                     }
+                    else if(TextUtils.isEmpty(dateInput.getText().toString()))
+                        {
+                            Toast.makeText(MonitorizareMainActivity.this, "Introduceti data primirii!", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                 } else if (id == R.id.output) {
                     outputText[0] = ((EditText) view.findViewById(R.id.outputText)).getText().toString();
                     if (TextUtils.isEmpty(outputText[0])) {
                         Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati cheltuit!", Toast.LENGTH_SHORT).show();
                         return;
+                    }
+                    else if(TextUtils.isEmpty(dateOutput.getText().toString()))
+                    {
+                        Toast.makeText(MonitorizareMainActivity.this, "Introduceti data ati cheltuit!", Toast.LENGTH_SHORT).show();
+                        return;
+
                     }
                 }
                 alertDialog.dismiss();
