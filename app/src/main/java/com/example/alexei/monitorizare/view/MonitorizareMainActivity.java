@@ -565,7 +565,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements View.
     }
 
     private void showDialogInsertDataInput() {
-        final DataBaseAccess dataBaseAccess;
 
         LayoutInflater layoutInflater = (LayoutInflater) MonitorizareMainActivity.this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         final View formView = layoutInflater.inflate(R.layout.data_dialog_input, null, false);
