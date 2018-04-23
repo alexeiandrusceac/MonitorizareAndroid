@@ -48,7 +48,7 @@ public class DataBaseHelper extends ExternalSQLiteHelper {
         super(context,DATABASE_NAME,sourceDirectory,null);
     }
 
-    public void backupDataBase(String outFileName)
+    /*public void backupDataBase(String outFileName)
     {
         final String inFileName = context.getDatabasePath(DATABASE_NAME).toString();
         try
@@ -72,9 +72,9 @@ public class DataBaseHelper extends ExternalSQLiteHelper {
             exception.printStackTrace();
         }
 
-    }
+    }*/
 
-    public void importDataBase(String inFileName)
+   /*public void importDataBase(String inFileName)
     {
         final String outFileName = context.getDatabasePath(DATABASE_NAME).toString();
         try
@@ -98,6 +98,6 @@ public class DataBaseHelper extends ExternalSQLiteHelper {
             exception.printStackTrace();
         }
 
-    }
+    }*/
 
 }
