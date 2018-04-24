@@ -79,6 +79,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.net.HttpRetryException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -175,14 +180,16 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_monitorizare_main);
+
         updateConfig();
         ForceUpdateChecker.with(this).onUpdateNeeded(this).check();
 
         query = new Query.Builder().addFilter(Filters.and(Filters.eq(SearchableField.MIME_TYPE, "application/db"),
                 Filters.eq(SearchableField.TITLE, "MonitorizareDB.db"))).build();
-        //noDataView = (TextView) findViewById(R.id.noDataView);
+        noDataView = (TextView) findViewById(R.id.noDataView);
 
         inputTotalView = (TextView) findViewById(R.id.totalInput);
+
         outputTotalView = (TextView) findViewById(R.id.totalOutput);
         differenceTotalView = (TextView) findViewById(R.id.totalDifferenta);
 
@@ -228,9 +235,11 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
         buttonInput.setOnClickListener(this);
         buttonOutput.setOnClickListener(this);
 
-        //showEmptyDataTextView();
+        showEmptyDataTextView();
 
         calculateSumTotal();
+
+
     }
 
     private void updateConfig() {
@@ -243,7 +252,7 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
         Map<String,Object> remoteConfigDefaults= new HashMap<>();
         remoteConfigDefaults.put(ForceUpdateChecker.KEY_UPDATE_REQUIRED,false);
         remoteConfigDefaults.put(ForceUpdateChecker.KEY_UPDATE_CURR_VERSION,"1.0.0");
-        remoteConfigDefaults.put(ForceUpdateChecker.KEY_UPDATE_STORE_URL,"https://github.com/alexeiandrusceac/MonitorizareAndroid/releases/details?id=com.example.alexei.monitorizare");
+        remoteConfigDefaults.put(ForceUpdateChecker.KEY_UPDATE_STORE_URL,"https://github.com/alexeiandrusceac/MonitorizareAndroid/releases/latest/monitorizare.apk");
 
         firebaseRemoteConfig.setDefaults(remoteConfigDefaults);
         long cacheExpiration = 3600;
@@ -471,14 +480,14 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
         }
 
 
-        /*private void showEmptyDataTextView () {
+        private void showEmptyDataTextView () {
 
             if (tb.getDataAdapter().getCount() > 0) {
                 noDataView.setVisibility(View.GONE);
             } else {
                 noDataView.setVisibility(View.VISIBLE);
             }
-        }*/
+        }
 
         private void showDialogEditDelete ( final int position){
 
@@ -555,7 +564,7 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
 
             tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfNewData)));
             tb.refreshDrawableState();
-           // showEmptyDataTextView();
+            showEmptyDataTextView();
         }
 
         private void deleteData ( int position){
@@ -572,7 +581,7 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
             tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfNewData)));
             tb.refreshDrawableState();
             calculateSumTotal();
-           // showEmptyDataTextView();
+            showEmptyDataTextView();
         }
 
         public void calculateSumTotal () {
@@ -630,7 +639,7 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
 
                                     tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
 
-                                  //  showEmptyDataTextView();
+                                    showEmptyDataTextView();
                                     calculateSumTotal();
 
                                 }
@@ -683,7 +692,7 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
                                     dataBaseAccess.close();
                                     tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
 
-                                  //  showEmptyDataTextView();
+                                    showEmptyDataTextView();
                                     calculateSumTotal();
 
                                 }
@@ -933,6 +942,7 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
                     .setPositiveButton("Actualizare", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
+
                             redirectStore(updateUrl);
                         }
                     })
@@ -947,9 +957,62 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
         }
         private void redirectStore (String updateUrl)
         {
-            final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
+            String PATH = "/sdcard/";
+            try {
+                URL url  = new URL(updateUrl);
+                /*HttpURLConnection httpURLConnection = (HttpURLConnection)url.openConnection();
+                httpURLConnection.setRequestMethod("GET");
+                httpURLConnection.setRequestProperty("Accept","application/android.com.app");
+
+                String PATH = Environment.getExternalStorageDirectory() + "/download/";
+                File file = new File(PATH);
+                file.mkdirs();
+                File outputFile = new File(file, "monitorizare.apk");
+                FileOutputStream fos = new FileOutputStream(outputFile);
+
+                InputStream is = httpURLConnection.getInputStream();
+
+                byte[] buffer = new byte[1024];
+                int len1 = 0;
+                while ((len1 = is.read(buffer)) != -1) {
+                    fos.write(buffer, 0, len1);
+                }
+                fos.close();
+                is.close();//till here, it works fine - .apk is download to my sdcard in download file
+*/
+
+                URLConnection connection = url.openConnection();
+                connection.connect();
+
+                //int fileLength = connection.getContentLength();
+
+                // download the file
+                InputStream input = new BufferedInputStream(url.openStream());
+                OutputStream output = new FileOutputStream(PATH);
+
+                byte data[] = new byte[1024];
+                long total = 0;
+                int count;
+                while ((count = input.read(data)) != -1) {
+                    total += count;
+                    //publishProgress((int) (total * 100 / fileLength));
+                    output.write(data, 0, count);
+                }
+
+                output.flush();
+                output.close();
+                input.close();
+                final Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(PATH + "monitorizare.apk"));
+                intent.setType("application/android.com.app");
+
+                startActivity(intent);
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
 
         class MyBroadcastReceiver extends BroadcastReceiver {
@@ -960,9 +1023,12 @@ public  class MonitorizareMainActivity extends AppCompatActivity implements Forc
 
                 if (isOnline(context)) {
 
+
                     // wifiul si datele mobile sunt activate
                     Toast.makeText(context, "Este Online", Toast.LENGTH_SHORT).show();
+
                     SignIn();
+
 
                 } else {
                     // wifiul si datele mobile sunt dezactivate

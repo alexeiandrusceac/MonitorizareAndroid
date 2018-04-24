@@ -30,14 +30,13 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     implementation project(':externalSqlite')
     implementation 'de.codecrafters.tableview:tableview:2.2.0'
-        //noinspection GradleCompatible
     implementation 'com.google.firebase:firebase-core:15.0.0'
     implementation 'com.google.firebase:firebase-messaging:15.0.0'
     implementation 'com.google.firebase:firebase-config:15.0.0'
     implementation 'com.google.android.gms:play-services-drive:15.0.0'
     implementation 'com.google.android.gms:play-services-auth:15.0.0'
     implementation 'com.firebase:firebase-jobdispatcher:0.8.5'
-    implementation  'com.google.firebase:firebase-config:9.0.0'
+
 }
 
-//apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.google.gms.google-services'
