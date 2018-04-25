@@ -127,7 +127,7 @@ public class DataBaseAccess {
     public void insertData(Context context, InOut inOut) {
         ContentValues values = new ContentValues();
 
-        values.put("ID", inOut.ID);
+        //values.put("ID", inOut.ID);
         values.put("Date", inOut.DATE);
         values.put("Input", inOut.INPUT);
         values.put("Output", inOut.OUTPUT);

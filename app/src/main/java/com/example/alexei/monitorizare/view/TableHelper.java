@@ -14,7 +14,7 @@ import java.util.List;
 public class TableHelper {
 
     Context mContext;
-    private String[] headers ={"Nr.crt","Data","Primit","Cheltuit"};
+    private String[] headers ={"Data","Primit","Cheltuit"};
     private String [][]  inOutArray;
 
     public TableHelper(Context context){
@@ -30,16 +30,16 @@ public class TableHelper {
     {
         InOut inOutData;
 
-        inOutArray = new String[listInOutData.size()][4];
+        inOutArray = new String[listInOutData.size()][3];
 
         for (int i=0;i<listInOutData.size();i++) {
 
             inOutData=listInOutData.get(i);
 
-            inOutArray[i][0]=String.valueOf(inOutData.ID);
-            inOutArray[i][1]=String.valueOf(inOutData.DATE);
-            inOutArray[i][2]=String.valueOf(inOutData.INPUT);
-            inOutArray[i][3]=String.valueOf(inOutData.OUTPUT);
+            //inOutArray[i][0]=String.valueOf(inOutData.ID);
+            inOutArray[i][0]=String.valueOf(inOutData.DATE);
+            inOutArray[i][1]=String.valueOf(inOutData.INPUT);
+            inOutArray[i][2]=String.valueOf(inOutData.OUTPUT);
         }
 
         return inOutArray;
