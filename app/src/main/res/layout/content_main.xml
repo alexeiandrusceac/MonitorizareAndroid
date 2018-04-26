@@ -135,7 +135,8 @@
         android:configChanges="orientation|screenSize"
         android:orientation="horizontal"
         custom:tableView_headerElevation="10"
-        table:tableView_columnCount="3">
+        table:tableView_columnCount="3"
+        >
 
     </de.codecrafters.tableview.TableView>
 

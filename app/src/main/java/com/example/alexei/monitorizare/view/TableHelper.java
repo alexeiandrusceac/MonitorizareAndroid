@@ -1,14 +1,9 @@
 package com.example.alexei.monitorizare.view;
 
 import android.content.Context;
-import android.os.Environment;
 
-import com.example.alexei.monitorizare.database.DataBaseAccess;
-import com.example.alexei.monitorizare.database.DataBaseHelper;
 import com.example.alexei.monitorizare.database.inOutmodel.InOut;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 public class TableHelper {

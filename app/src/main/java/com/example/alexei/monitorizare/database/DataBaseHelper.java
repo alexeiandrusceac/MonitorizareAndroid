@@ -38,7 +38,7 @@ import com.example.mylibrary.ExternalSQLiteHelper;
 public class DataBaseHelper extends ExternalSQLiteHelper {
     public  static  String DATABASE_NAME="MonitorizareDB.db";
     private static final int SCHEMA = 1;
-    private Context context;
+
     public DataBaseHelper (Context context)
     {
         super(context,DATABASE_NAME,null,SCHEMA);
@@ -47,57 +47,5 @@ public class DataBaseHelper extends ExternalSQLiteHelper {
     {
         super(context,DATABASE_NAME,sourceDirectory,null);
     }
-
-    /*public void backupDataBase(String outFileName)
-    {
-        final String inFileName = context.getDatabasePath(DATABASE_NAME).toString();
-        try
-        {
-            File dbfile = new File(inFileName);
-            FileInputStream fileInputStream = new FileInputStream(dbfile);
-            OutputStream outputStream = new FileOutputStream(outFileName);
-            byte[] buffer = new byte[1024];
-            int length;
-            while((length = fileInputStream.read(buffer)) > 0)
-                outputStream.write(buffer,0,length);
-            outputStream.flush();
-            outputStream.close();
-            fileInputStream.close();
-            Toast.makeText(context, " Copierea bazei de date sa executat cu succes",Toast.LENGTH_SHORT).show();
-
-        }
-        catch(Exception exception)
-        {
-            Toast.makeText(context, "Nu sa copiat baza de date!!!", Toast.LENGTH_SHORT).show();
-            exception.printStackTrace();
-        }
-
-    }*/
-
-   /*public void importDataBase(String inFileName)
-    {
-        final String outFileName = context.getDatabasePath(DATABASE_NAME).toString();
-        try
-        {
-            File dbfile = new File(inFileName);
-            FileInputStream fileInputStream = new FileInputStream(dbfile);
-            OutputStream outputStream = new FileOutputStream(outFileName);
-            byte[] buffer = new byte[1024];
-            int length;
-            while((length = fileInputStream.read(buffer)) > 0)
-                outputStream.write(buffer,0,length);
-            outputStream.flush();
-            outputStream.close();
-            fileInputStream.close();
-            Toast.makeText(context, " Copierea bazei de date sa executat cu succes",Toast.LENGTH_SHORT).show();
-
-        }
-        catch(Exception exception)
-        {
-            Toast.makeText(context, "Nu sa copiat baza de date!!!", Toast.LENGTH_SHORT).show();
-            exception.printStackTrace();
-        }
-
-    }*/
 
 }

@@ -33,6 +33,7 @@ import android.renderscript.ScriptGroup;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
+
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -46,6 +47,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 
 import android.view.animation.Animation;
@@ -176,6 +178,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
     private FloatingActionButton buttonAdd, buttonInput, buttonOutput;
     private Animation button_open, button_close, button_forward, button_backward;
     private TextView textViewInput, textViewOutput;
+
     //private BroadcastReceiver broadcastReceiver;
     // private Query query;
 
@@ -209,6 +212,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
         setSupportActionBar(toolbar);
 
         checkExternalStorage();
+
         dataBaseAccess.open();
         listOfNewData = dataBaseAccess.getAllPosts();
         dataBaseAccess.close();
@@ -246,39 +250,75 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
 
     }
 
-    /*
-        private void updateConfig() {
 
-            final FirebaseRemoteConfig firebaseRemoteConfig = FirebaseRemoteConfig.getInstance();
 
-            FirebaseRemoteConfigSettings firebaseRemoteConfigSettings = new FirebaseRemoteConfigSettings.Builder().build();
-            firebaseRemoteConfig.setConfigSettings(firebaseRemoteConfigSettings);
+    @Override
+    public void onBackPressed() {
+        if (buttonOpen) {
+            buttonAdd.startAnimation(button_backward);
+            buttonInput.startAnimation(button_close);
+            buttonOutput.startAnimation(button_close);
+            buttonInput.setClickable(false);
+            buttonOutput.setClickable(false);
+            buttonOpen = false;
+            textViewInput.setVisibility(View.GONE);
+            textViewOutput.setVisibility(View.GONE);
+        }
+        else {
 
-            Map<String,Object> remoteConfigDefaults= new HashMap<>();
-            remoteConfigDefaults.put(ForceUpdateChecker.KEY_UPDATE_REQUIRED,false);
-            remoteConfigDefaults.put(ForceUpdateChecker.KEY_UPDATE_CURR_VERSION,"1.0.0");
-            remoteConfigDefaults.put(ForceUpdateChecker.KEY_UPDATE_STORE_URL,"https://github.com/alexeiandrusceac/MonitorizareAndroid/releases/latest");
-
-            firebaseRemoteConfig.setDefaults(remoteConfigDefaults);
-            long cacheExpiration = 3600;
-            //onDevelopment make cacheExpiration as zero second;
-            if (firebaseRemoteConfig.getInfo().getConfigSettings().isDeveloperModeEnabled()) {
-                cacheExpiration = 0;
-            }
-            firebaseRemoteConfig.fetch(60)
-                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+            new AlertDialog.Builder(MonitorizareMainActivity.this)
+                    .setTitle("Sunteti siguri")
+                    .setMessage("Sunteti sigur ca doriti sa iesiti din aplicatie?")
+                    .setPositiveButton("Da",new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    System.exit(1);
+                }
+            })
+                    .setNegativeButton("Nu",
+                    new DialogInterface.OnClickListener() {
                         @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            if(task.isSuccessful())
-                            {
-                                Log.d(TAG,"remote config is fetched");
-                                firebaseRemoteConfig.activateFetched();
-                            }
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
                         }
-                    });
+                    }).show();
 
         }
-    */
+    }
+
+    /*
+            private void updateConfig() {
+
+                final FirebaseRemoteConfig firebaseRemoteConfig = FirebaseRemoteConfig.getInstance();
+
+                FirebaseRemoteConfigSettings firebaseRemoteConfigSettings = new FirebaseRemoteConfigSettings.Builder().build();
+                firebaseRemoteConfig.setConfigSettings(firebaseRemoteConfigSettings);
+
+                Map<String,Object> remoteConfigDefaults= new HashMap<>();
+                remoteConfigDefaults.put(ForceUpdateChecker.KEY_UPDATE_REQUIRED,false);
+                remoteConfigDefaults.put(ForceUpdateChecker.KEY_UPDATE_CURR_VERSION,"1.0.0");
+                remoteConfigDefaults.put(ForceUpdateChecker.KEY_UPDATE_STORE_URL,"https://github.com/alexeiandrusceac/MonitorizareAndroid/releases/latest");
+
+                firebaseRemoteConfig.setDefaults(remoteConfigDefaults);
+                long cacheExpiration = 3600;
+                //onDevelopment make cacheExpiration as zero second;
+                if (firebaseRemoteConfig.getInfo().getConfigSettings().isDeveloperModeEnabled()) {
+                    cacheExpiration = 0;
+                }
+                firebaseRemoteConfig.fetch(60)
+                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if(task.isSuccessful())
+                                {
+                                    Log.d(TAG,"remote config is fetched");
+                                    firebaseRemoteConfig.activateFetched();
+                                }
+                            }
+                        });
+
+            }
+        */
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -359,10 +399,12 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
                 showDialogInsertDataOutput();
                 break;
         }
+
     }
 
     public void animateButtons() {
         if (buttonOpen) {
+
             buttonAdd.startAnimation(button_backward);
             buttonInput.startAnimation(button_close);
             buttonOutput.startAnimation(button_close);
@@ -371,7 +413,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
             buttonOpen = false;
             textViewInput.setVisibility(View.GONE);
             textViewOutput.setVisibility(View.GONE);
-        } else {
+        } else{
             buttonAdd.startAnimation(button_forward);
             buttonInput.startAnimation(button_open);
             buttonOutput.startAnimation(button_open);
@@ -381,6 +423,8 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
             textViewInput.setVisibility(View.VISIBLE);
             textViewOutput.setVisibility(View.VISIBLE);
         }
+
+
     }
 
     @Override
@@ -550,6 +594,9 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
                 }
             }
     */
+
+
+
     private void updateData(InOut inOut, int position) {
 
         checkExternalStorage();
@@ -566,7 +613,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
         tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfNewData)));
         tb.refreshDrawableState();
         calculateSumTotal();
-        showEmptyDataTextView();
+
     }
 
     private void deleteData(InOut inOut, int position) {
@@ -579,7 +626,6 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
         dataBaseAccess.close();
 
         listOfNewData.remove(position);
-
 
         tb.setDataAdapter(new SimpleTableDataAdapter(this, tableHelper.getData(listOfNewData)));
         tb.refreshDrawableState();
@@ -687,7 +733,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
 
         checkExternalStorage();
 
-       final AlertDialog.Builder alertDialogBuilder =  new AlertDialog.Builder(MonitorizareMainActivity.this)
+        final AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MonitorizareMainActivity.this)
                 .setView(formView)
                 .setCancelable(false)
                 .setPositiveButton("Adauga",
@@ -705,47 +751,47 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
                             }
                         });
 
-       final AlertDialog alertDialog = alertDialogBuilder.create();
-       alertDialog.show();
-       alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
-           @Override
-           public void onClick(View v) {
+        final AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.show();
+        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
 
-               final InOut inOut = new InOut();
+                final InOut inOut = new InOut();
 
-               if (TextUtils.isEmpty(dateOutput.getText().toString())) {
-                   Toast.makeText(MonitorizareMainActivity.this, "Introduceti data cind ati primit!", Toast.LENGTH_SHORT).show();
-                   return;
-               } else if (TextUtils.isEmpty(cheltuitInput.getText().toString())) {
-                   Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
-                   return;
-               }
-               alertDialog.dismiss();
+                if (TextUtils.isEmpty(dateOutput.getText().toString())) {
+                    Toast.makeText(MonitorizareMainActivity.this, "Introduceti data cind ati cheltuit!", Toast.LENGTH_SHORT).show();
+                    return;
+                } else if (TextUtils.isEmpty(cheltuitInput.getText().toString())) {
+                    Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati cheltuit!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                alertDialog.dismiss();
 
-               // verifica daca utilizatorul actualizeaza datele
-               if (inOut != null) {
-                   // actualizeaza datele
-                   inOut.DATE = dateOutput.getText().toString();
-                   inOut.INPUT = 0;
-                   inOut.OUTPUT = Integer.parseInt(cheltuitInput.getText().toString());
+                // verifica daca utilizatorul actualizeaza datele
+                if (inOut != null) {
+                    // actualizeaza datele
+                    inOut.DATE = dateOutput.getText().toString();
+                    inOut.INPUT = 0;
+                    inOut.OUTPUT = Integer.parseInt(cheltuitInput.getText().toString());
 
-                   listOfNewData.add(inOut);
+                    listOfNewData.add(inOut);
 
-                   dataBaseAccess.open();
-                   dataBaseAccess.insertData(MonitorizareMainActivity.this, inOut);
+                    dataBaseAccess.open();
+                    dataBaseAccess.insertData(MonitorizareMainActivity.this, inOut);
 
-                   dataBaseAccess.close();
+                    dataBaseAccess.close();
 
-                   tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
+                    tb.setDataAdapter(new SimpleTableDataAdapter(MonitorizareMainActivity.this, tableHelper.getData(listOfNewData)));
 
-                   showEmptyDataTextView();
-                   calculateSumTotal();
+                    showEmptyDataTextView();
+                    calculateSumTotal();
 
 
-               }
-       }
+                }
+            }
 
-    });
+        });
     }
 
     public EditText setDate(View dialogView) {
@@ -799,7 +845,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
                     saveToDrive();
                     break;*/
             case R.id.exit_from_App:
-                System.exit(1);
+                onBackPressed();
                 break;
             default:
                 break;
@@ -864,8 +910,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
                         });
             }
     */
-    private void showDialogEditData(final boolean shouldUpdate, final InOut inOut,
-                                    final int position) {
+    private void showDialogEditData(final boolean shouldUpdate, final InOut inOut, final int position) {
         final LayoutInflater layoutInflaterAndroid = LayoutInflater.from(getApplicationContext());
         final View view;
 
@@ -875,7 +920,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
         final EditText input;
         final EditText dateInputSet;
         final EditText dateOutputSet;
-
+        final EditText dateInput,dateOutput;
 
         if (inOut.OUTPUT != 0) {
             view = layoutInflaterAndroid.inflate(R.layout.data_dialog_output, null);
@@ -887,93 +932,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
             dateOutputSet.setText(String.valueOf(inOut.DATE));
             dateOutputSet.setTextColor(Color.BLACK);
             dateOutputSet.setHintTextColor(Color.RED);
-            final EditText dateInput = setDate(view);
-
-            AlertDialog.Builder alertDialogBuilderUserInput = new AlertDialog.Builder(MonitorizareMainActivity.this);
-            alertDialogBuilderUserInput.setView(view);
-
-            checkExternalStorage();
-
-            if (shouldUpdate && inOut != null) {
-
-                dateInput.setText(String.valueOf(inOut.DATE));
-
-                dateInput.setTextColor(Color.BLACK);
-            }
-            alertDialogBuilderUserInput
-                    .setCancelable(false)
-                    .setView(view)
-                    .setPositiveButton(shouldUpdate ? "Actualizeaza" : "Salveaza", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialogBox, int id) {
-
-                        }
-                    })
-                    .setNegativeButton("Anuleaza",
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialogBox, int id) {
-                                    dialogBox.cancel();
-                                }
-                            });
-
-            final AlertDialog alertDialog = alertDialogBuilderUserInput.create();
-            alertDialog.show();
-
-            alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
-                @SuppressLint("ResourceType")
-                @Override
-                public void onClick(View v) {
-
-                    //int id = view.getId();
-                    //if (id == R.id.input) {
-                    inputText[0] = ((EditText) (view.findViewById(R.id.inputText))).getText().toString();
-                    if (TextUtils.isEmpty(inputText[0])) {
-                        Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
-                        return;
-                    } else if (TextUtils.isEmpty(dateInput.getText().toString())) {
-                        Toast.makeText(MonitorizareMainActivity.this, "Introduceti data primirii!", Toast.LENGTH_SHORT).show();
-                        return;
-                        //}
-                            /*} else if (id == R.id.output) {
-                                outputText[0] = ((EditText) view.findViewById(R.id.outputText)).getText().toString();
-                                if (TextUtils.isEmpty(outputText[0])) {
-                                    Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati cheltuit!", Toast.LENGTH_SHORT).show();
-                                    return;
-                                } else if (TextUtils.isEmpty(dateOutput.getText().toString())) {
-                                    Toast.makeText(MonitorizareMainActivity.this, "Introduceti data ati cheltuit!", Toast.LENGTH_SHORT).show();
-                                    return;
-*/
-                    }
-
-                    alertDialog.dismiss();
-
-                    // verifica daca utilizatorul actualizeaza datele
-                    if (shouldUpdate && inOut != null) {
-                        // actualizeaza datele
-                        inOut.DATE = dateInput.getText().toString();
-                        inOut.INPUT = (inputText[0] == null ? 0 : Integer.parseInt(inputText[0]));
-                        inOut.OUTPUT = (outputText[0] == null ? 0 : Integer.parseInt(outputText[0]));
-
-                        listOfNewData.get(position);
-                        listOfNewData.set(position, inOut);
-
-                        updateData(listOfNewData.get(position), position);
-                        calculateSumTotal();
-
-                    }
-                }
-            });
-
-        } else if (inOut.INPUT != 0) {
-            view = layoutInflaterAndroid.inflate(R.layout.data_dialog_input, null);
-            input = view.findViewById(R.id.inputText);
-            input.setText(String.valueOf(inOut.INPUT));
-            input.setTextColor(Color.BLACK);
-            input.setHintTextColor(Color.RED);
-            dateInputSet = view.findViewById(R.id.dateText);
-            dateInputSet.setText(String.valueOf(inOut.DATE));
-            dateInputSet.setTextColor(Color.BLACK);
-            dateInputSet.setHintTextColor(Color.RED);
-            final EditText dateOutput = setDate(view);
+            dateOutput = setDate(view);
             AlertDialog.Builder alertDialogBuilderUserInput = new AlertDialog.Builder(MonitorizareMainActivity.this);
             alertDialogBuilderUserInput.setView(view);
 
@@ -1008,36 +967,118 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
                 @Override
                 public void onClick(View v) {
 
+                    //int id = view.getId();
+                    //if (id == R.id.input) {
+                       /* inputText[0] = ((EditText) (view.findViewById(R.id.inputText))).getText().toString();
+                        if (TextUtils.isEmpty(inputText[0])) {
+                            Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
+                            return;
+                        } else if (TextUtils.isEmpty(dateInput.getText().toString())) {
+                            Toast.makeText(MonitorizareMainActivity.this, "Introduceti data primirii!", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    } else if (id == R.id.output) {*/
+                        outputText[0] = ((EditText) view.findViewById(R.id.outputText)).getText().toString();
+                        if (TextUtils.isEmpty(outputText[0])) {
+                            Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati cheltuit!", Toast.LENGTH_SHORT).show();
+                            return;
+                        } else if (TextUtils.isEmpty(dateOutput.getText().toString())) {
+                            Toast.makeText(MonitorizareMainActivity.this, "Introduceti data ati cheltuit!", Toast.LENGTH_SHORT).show();
+                            return;
 
-                    outputText[0] = ((EditText) view.findViewById(R.id.outputText)).getText().toString();
-                    if (TextUtils.isEmpty(outputText[0])) {
-                        Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati cheltuit!", Toast.LENGTH_SHORT).show();
-                        return;
-                    } else if (TextUtils.isEmpty(dateOutput.getText().toString())) {
-                        Toast.makeText(MonitorizareMainActivity.this, "Introduceti data ati cheltuit!", Toast.LENGTH_SHORT).show();
-                        return;
-
-                    }
-
+                        }
+                    //}
                     alertDialog.dismiss();
 
                     // verifica daca utilizatorul actualizeaza datele
                     if (shouldUpdate && inOut != null) {
                         // actualizeaza datele
                         inOut.DATE = dateOutput.getText().toString();
-                        inOut.INPUT = (inputText[0] == null ? 0 : Integer.parseInt(inputText[0]));
+                        inOut.INPUT = 0;//(inputText[0] == null ? 0 : Integer.parseInt(inputText[0]));
                         inOut.OUTPUT = (outputText[0] == null ? 0 : Integer.parseInt(outputText[0]));
 
-                        listOfNewData.get(position);
-                        listOfNewData.set(position, inOut);
 
                         updateData(listOfNewData.get(position), position);
                         calculateSumTotal();
 
                     }
                 }
+
+            });
+
+        } else {
+            view = layoutInflaterAndroid.inflate(R.layout.data_dialog_input, null);
+            input = view.findViewById(R.id.inputText);
+            input.setText(String.valueOf(inOut.INPUT));
+            input.setTextColor(Color.BLACK);
+            input.setHintTextColor(Color.RED);
+            dateInputSet = view.findViewById(R.id.dateText);
+            dateInputSet.setText(String.valueOf(inOut.DATE));
+            dateInputSet.setTextColor(Color.BLACK);
+            dateInputSet.setHintTextColor(Color.RED);
+            dateInput = setDate(view);
+            AlertDialog.Builder alertDialogBuilderUserInput = new AlertDialog.Builder(MonitorizareMainActivity.this);
+            alertDialogBuilderUserInput.setView(view);
+
+            checkExternalStorage();
+
+            if (shouldUpdate && inOut != null) {
+
+                dateInput.setText(String.valueOf(inOut.DATE));
+
+                dateInput.setTextColor(Color.BLACK);
+            }
+            alertDialogBuilderUserInput
+                    .setCancelable(false)
+                    .setView(view)
+                    .setPositiveButton(shouldUpdate ? "Actualizeaza" : "Salveaza", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialogBox, int id) {
+
+                        }
+                    })
+                    .setNegativeButton("Anuleaza",
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialogBox, int id) {
+                                    dialogBox.cancel();
+                                }
+                            });
+
+            final AlertDialog alertDialog = alertDialogBuilderUserInput.create();
+            alertDialog.show();
+
+            alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+                @SuppressLint("ResourceType")
+                @Override
+                public void onClick(View v) {
+
+                   inputText[0] = ((EditText) (view.findViewById(R.id.inputText))).getText().toString();
+                        if (TextUtils.isEmpty(inputText[0])) {
+                            Toast.makeText(MonitorizareMainActivity.this, "Introduceti cit ati primit!", Toast.LENGTH_SHORT).show();
+                            return;
+                        } else if (TextUtils.isEmpty(dateInput.getText().toString())) {
+                            Toast.makeText(MonitorizareMainActivity.this, "Introduceti data primirii!", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                    alertDialog.dismiss();
+
+                    // verifica daca utilizatorul actualizeaza datele
+                    if (shouldUpdate && inOut != null) {
+                        // actualizeaza datele
+                        inOut.DATE = dateInput.getText().toString();
+                        inOut.INPUT = (inputText[0] == null ? 0 : Integer.parseInt(inputText[0]));
+                        inOut.OUTPUT = 0;
+
+                        updateData(listOfNewData.get(position), position);
+                        calculateSumTotal();
+
+                    }
+                }
+
             });
         }
+
+
 
     }
 /*
@@ -1139,4 +1180,4 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
                 }
             }
         }*/
-}
+    }
