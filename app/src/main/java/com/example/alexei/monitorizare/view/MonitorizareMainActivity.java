@@ -802,7 +802,7 @@ public class MonitorizareMainActivity extends AppCompatActivity implements /*For
             public void onClick(View view) {
                 final Calendar cldr = Calendar.getInstance();
                 int day = cldr.get(Calendar.DAY_OF_MONTH);
-                int month = cldr.get(Calendar.MONTH);
+                int month = cldr.get(Calendar.MONTH)+1;
                 int year = cldr.get(Calendar.YEAR);
 
                 datepicker = new DatePickerDialog(MonitorizareMainActivity.this, new DatePickerDialog.OnDateSetListener() {
